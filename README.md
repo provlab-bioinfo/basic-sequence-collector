@@ -1,5 +1,5 @@
 # basic-sequence-collector
- [![Lifecycle: WIP](https://img.shields.io/badge/lifecycle-WIP-yellow.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental) [![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/provlab-bioinfo/basic-sequence-collector/issues) [![License: GPL3](https://img.shields.io/badge/license-GPL3-lightgrey.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html) [![minimal Python version: 3.0](https://img.shields.io/badge/Python-3.0-6666ff.svg)](https://www.python.org/) [![Package Version = 0.0.1](https://img.shields.io/badge/Package%20version-0.0.1-orange.svg?style=flat-square)](https://github.com/provlab-bioinfo/basic-sequence-collector/blob/main/NEWS) [![Last-changedate](https://img.shields.io/badge/last%20change-2023--10--31-yellowgreen.svg)](https://github.com/provlab-bioinfo/basic-sequence-collector/blob/main/NEWS)
+ [![Lifecycle: WIP](https://img.shields.io/badge/lifecycle-WIP-yellow.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental) [![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/provlab-bioinfo/basic-sequence-collector/issues) [![License: GPL3](https://img.shields.io/badge/license-GPL3-lightgrey.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html) [![minimal Python version: 3.0](https://img.shields.io/badge/Python-3.10-6666ff.svg)](https://www.python.org/) [![Package Version = 0.0.1](https://img.shields.io/badge/Package%20version-0.0.1-orange.svg?style=flat-square)](https://github.com/provlab-bioinfo/basic-sequence-collector/blob/main/NEWS) [![Last-changedate](https://img.shields.io/badge/last%20change-2023--10--31-yellowgreen.svg)](https://github.com/provlab-bioinfo/basic-sequence-collector/blob/main/NEWS)
 
 A collector for FASTQ files from Illumina (single- and paired-end short reads) or Nanopore (long read) NGS for downstream processing at [ProvLab](https://www.albertahealthservices.ca/lab/page3317.aspx).
 
@@ -53,20 +53,13 @@ SAMPLE-03   ,                           ,                           ,/path/to/SA
 
 ## Output
 
-The output file structure is determined by the `outdir` and `label` parameters, and `ID` of the samples:
+The output file structure is determined by the `outdir`:
 
 ```bash
 <outdir>
-   ├── pipeline_info
-   │          └── software_versions.yml
-   ├── <label>
-   │      └── stats
-   │            ├── <ID>.nanoplot.html
-   │            ├── <ID>.seqkit.tsv
-   │            └── <ID>.fastqc.html
-   └── report
-          ├── <label>.multiqc.html
-          └── <label>.seqkit.tsv
+   └── pipeline_info
+             ├── samplesheet.valid.csv
+             └── software_versions.yml
 ```
 
 ## References
