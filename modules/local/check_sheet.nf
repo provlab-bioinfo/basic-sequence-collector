@@ -1,4 +1,4 @@
-process SAMPLESHEETCHECK {
+process CHECK_SHEET {
     tag "$samplesheet"
     label 'process_medium'
 
@@ -21,7 +21,7 @@ process SAMPLESHEETCHECK {
     """
     check_samplesheet.py \\
         $samplesheet \\
-        samplesheet.valid.csv
+        samplesheet.csv
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

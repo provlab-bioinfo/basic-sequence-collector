@@ -1,4 +1,4 @@
-process SAMPLESHEETBUILD {
+process BUILD_SHEET {
     tag "$folder"
     label 'process_medium'
 
