@@ -3,11 +3,7 @@
 # TODO nf-core: Update the script to check the samplesheet
 # This script is based on the example at: https://raw.githubusercontent.com/nf-core/test-datasets/viralrecon/samplesheet/samplesheet_test_illumina_amplicon.csv
 
-import os
-import sys
-import errno
-import argparse
-
+import os, sys, errno, argparse, gzip
 
 def parse_args(args=None):
     Description = "Reformat nf-core/pathogen samplesheet file and check its contents."
@@ -18,6 +14,17 @@ def parse_args(args=None):
     parser.add_argument("FILE_OUT", help="Output file.")
     return parser.parse_args(args)
 
+def isGZ(filepath):
+    """Check if file is GZIP'd
+    :param filepath: File to check
+    :return: bool
+    """    
+    with gzip.open(filepath, 'r') as fh:
+        try:
+            fh.read(1)
+        except gzip.BadGzipFile:
+            return False
+    return True
 
 def make_dir(path):
     if len(path) > 0:
@@ -42,8 +49,8 @@ def print_error(error, context="Line", context_str=""):
 def check_samplesheet(file_in, file_out):
     """
     This function checks that the samplesheet follows the following structure:
-    sample,illumina1,illumina2,nanopore,basecaller_mode
-    SAMEA6451102,read_1.fastq.gz,read_2.fastq.gz,longread.fastq.gz,r1041_e82_400bps_hac_v4.2.0
+    sample,illumina1,illumina2,nanopore
+    SAMEA6451102,read_1.fastq.gz,read_2.fastq.gz,longread.fastq.gz
 
     For an example see:
     https://raw.githubusercontent.com/nf-core/test-datasets/viralrecon/samplesheet/samplesheet_test_illumina_amplicon.csv
@@ -54,7 +61,6 @@ def check_samplesheet(file_in, file_out):
         import re
         regex=re.compile('^#')
         
-
         ## Check header
         MIN_COLS = 2
         # TODO nf-core: Update the column names for the input samplesheet
@@ -99,9 +105,9 @@ def check_samplesheet(file_in, file_out):
                         continue
                     elif fastq.find(" ") != -1:
                         print_error("FastQ file contains spaces!", "Line", line)
-                    elif not fastq.endswith(".fastq.gz") and not fastq.endswith(".fq.gz"):
+                    elif not fastq.endswith([".fastq.gz",".fq.gz",".fq",".gz"]):
                         print_error(
-                            "FastQ file does not have extension '.fastq.gz' or '.fq.gz'!",
+                            "FastQ file does not have extension '.fastq.gz', '.fq.gz', '.fastq', or '.fq'!",
                             "Line",
                             line,
                         )
@@ -110,7 +116,7 @@ def check_samplesheet(file_in, file_out):
             sample_info = []  ## [single_end, illumina1, illumina2]
             if id and illumina1 and illumina2:  ## Paired-end short reads
                 sample_info = ["False", illumina1, illumina2, nanopore]
-            elif id and illumina1 and not illumina2:  ## Single-end short reads
+            elif id and (illumina1 or nanopore):  ## Single-end short reads
                 sample_info = ["True", illumina1, illumina2, nanopore]
             else:
                 print_error("Invalid combination of columns provided!", "Line", line)
@@ -145,7 +151,6 @@ def check_samplesheet(file_in, file_out):
 def main(args=None):
     args = parse_args(args)
     check_samplesheet(args.FILE_IN, args.FILE_OUT)
-
 
 if __name__ == "__main__":
     sys.exit(main())
