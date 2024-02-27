@@ -1,5 +1,3 @@
-include { BUILD_SHEET } from '../../modules/local/build_sheet'
-
 workflow VALIDATE_FOLDER {
     take:
         folder // file: /path/to/samplesheet.csv
@@ -9,21 +7,56 @@ workflow VALIDATE_FOLDER {
         log.debug "Checking folder..."
 
         def illumina_files = { file -> file.name.lastIndexOf('_L001').with {it != -1 ? file.name[0..<it] : file.name} }
-        Channel.fromFilePairs( params.illumina_search_path, flat: true, illumina).set{ illumina_reads }
+        Channel.fromFilePairs( params.illumina_search_path, flat: true, illumina_files).set{ illumina_reads }
 
         def nanopore_files = { file -> file.name.lastIndexOf('_').with {it != -1 ? file.name[0..<it] : file.name} }
         Channel.fromFilePairs( params.nanopore_search_path, flat: true , size: -1, nanopore_files).set{ nanopore_reads }
 
-        reads = reads.map{ create_folder_read_channels(it) }
-        BUILD_SHEET(reads).csv.collectFile(name: 'samplesheet.csv', keepHeader: true).map { it }.set { sheet }
-        sheet.view()
+        reads = illumina_reads.concat(nanopore_reads).map{ create_folder_read_channels(it) }
+        BUILD_SHEET(reads).csv.collectFile(name: 'samplesheet.csv', keepHeader: true).map { it }.set { reads }
 
         log.debug "Folder is good ✅"
 
+        illumina_files.view { "illumina_files: ${it}" }
+        nanopore_files.view { "nanopore_files: ${it}" }
+        reads.view { "reads: ${it}" }
+
     emit:
-        sheet // channel: [ val(meta), [ illumina ], nanopore ]
+        reads // channel: [ val(meta), [ illumina ], nanopore ]
         versions = BUILD_SHEET.out.versions
 
+}
+
+process BUILD_SHEET {
+    tag "$folder"
+    label 'process_medium'
+
+    conda "conda-forge::python=3.9.5"
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/python:3.9--1' :
+        'biocontainers/python:3.9--1' }"
+
+    input:
+        tuple val(id), val(illumina1), val(illumina2), val(nanopore)
+
+    output:
+        path '*.csv'       , emit: csv
+        path "versions.yml", emit: versions
+
+    when:
+        task.ext.when == null || task.ext.when
+
+    script: // This script is bundled with the pipeline, in nf-core/rnaseq/bin/
+        """
+        touch ${id}_samplesheet.csv
+        echo "ID,illumina1,illumina2,nanopore" >> ${id}_samplesheet.csv
+        echo "${id},${illumina1},${illumina2},${nanopore}" >> ${id}_samplesheet.csv
+
+        cat <<-END_VERSIONS > versions.yml
+        "${task.process}":
+            python: \$(python --version | sed 's/Python //g')
+        END_VERSIONS
+        """
 }
 
 // Function to get list of [ meta, illumina1, illumina2, nanopore ]
@@ -54,3 +87,9 @@ def create_folder_read_channels(List row) {
 //     return
 // }
 
+def checkRead(String read) {
+    if (read == 'NA' | read == '') return 'NA'
+    if (!file(read).exists())    exit 1, "ERROR: Please check input samplesheet -> FASTQ file does not exist!\n   ${read}"        
+    if (file(read).size() == 0)  exit 1, "ERROR: Please check input samplesheet -> FASTQ file is empty!\n   ${read}"
+    return file(read)
+}

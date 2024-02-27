@@ -1,5 +1,3 @@
-include { CHECK_SHEET } from '../../modules/local/check_sheet'
-
 workflow VALIDATE_SHEET {
     take:
         samplesheet // file: /path/to/samplesheet.csv, format of [ meta, illumina1, illumina2, nanopore ]
@@ -19,25 +17,53 @@ workflow VALIDATE_SHEET {
         versions = CHECK_SHEET.out.versions // channel: [ versions.yml ]
 }
 
+process CHECK_SHEET {
+    tag "$samplesheet"
+    label 'process_medium'
+
+    conda "conda-forge::python=3.9.5"
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/python:3.9--1' :
+        'biocontainers/python:3.9--1' }"
+
+    input:
+        path samplesheet
+
+    output:
+        path '*.csv'       , emit: csv
+        path "versions.yml", emit: versions
+
+    when:
+        task.ext.when == null || task.ext.when  
+
+    script: // This script is bundled with the pipeline, in nf-core/rnaseq/bin/
+    """
+    check_samplesheet.py \\
+        $samplesheet \\
+        samplesheet2.csv
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        python: \$(python --version | sed 's/Python //g')
+    END_VERSIONS
+    """
+}
+
+
 // Function to get list of [ meta, [ illumina1, illumina2 ], nanopore ]
 def create_sheet_read_channels(LinkedHashMap row) {
     
-    def meta = [:]
-    meta.id           = row.sample
-    meta.single_end   = !(row.illumina1 == 'NA') && !(row.illumina2 == 'NA') ? false : true
-
+    meta = row.id
     illumina1 = checkRead(row.illumina1)
     illumina2 = checkRead(row.illumina2)
     nanopore  = checkRead(row.nanopore)
     
-    def array = []
-    if ( meta.single_end ) {
-        illumina = row.illumina1 == 'NA' ? illumina2 : illumina1
-        array = [ meta, [ illumina ], nanopore]
-    } else {
-        array = [ meta, [ illumina1, illumina2 ], nanopore ]
-    } 
-    return array 
+    if (row.illumina1 == 'NA' && row.illumina2 != 'NA') {
+        illumina1 = illumina2
+        illuina2 = 'NA'
+    }
+
+    return [ meta, [ illumina1, illumina2 ], nanopore ] 
 }
 
 def checkRead(String read) {
