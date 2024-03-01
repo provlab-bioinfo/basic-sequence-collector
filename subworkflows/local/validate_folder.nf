@@ -6,20 +6,25 @@ workflow VALIDATE_FOLDER {
 
         log.debug "Checking folder..."
 
+        illumina_reads = nanopore_reads = Channel.empty()
+
         def illumina_files = { file -> file.name.lastIndexOf('_L001').with {it != -1 ? file.name[0..<it] : file.name} }
-        Channel.fromFilePairs( params.illumina_search_path, flat: true, illumina_files).set{ illumina_reads }
+        Channel.fromFilePairs( params.illumina_search_path, flat: true, illumina_files) | map{ checkReads(it) } | set{ illumina_reads }
 
         def nanopore_files = { file -> file.name.lastIndexOf('_').with {it != -1 ? file.name[0..<it] : file.name} }
-        Channel.fromFilePairs( params.nanopore_search_path, flat: true , size: -1, nanopore_files).set{ nanopore_reads }
+        Channel.fromFilePairs( params.nanopore_search_path, flat: true , size: -1, nanopore_files) | map{ checkReads(it) } | set{ nanopore_reads }
+        
+        illumina_reads.view { "validate_folder | illumina_files: ${it}" }
+        nanopore_reads.view { "validate_folder | nanopore_files: ${it}" }
 
-        reads = illumina_reads.concat(nanopore_reads).map{ create_folder_read_channels(it) }
-        BUILD_SHEET(reads).csv.collectFile(name: 'samplesheet.csv', keepHeader: true).map { it }.set { reads }
+        reads = illumina_reads.join(nanopore_reads, remainder: true)//.map{ create_folder_read_channels(it) }
+        //reads = nanopore_reads.map{ create_folder_read_channels(it) }
+
+        reads.view { "validate_folder | reads: ${it}" }
+
+        BUILD_SHEET(reads).csv.collectFile(name: 'samplesheet.csv', keepHeader: true)//.map { it }.set { reads }
 
         log.debug "Folder is good ✅"
-
-        illumina_files.view { "illumina_files: ${it}" }
-        nanopore_files.view { "nanopore_files: ${it}" }
-        reads.view { "reads: ${it}" }
 
     emit:
         reads // channel: [ val(meta), [ illumina ], nanopore ]
@@ -87,9 +92,22 @@ def create_folder_read_channels(List row) {
 //     return
 // }
 
-def checkRead(String read) {
-    if (read == 'NA' | read == '') return 'NA'
-    if (!file(read).exists())    exit 1, "ERROR: Please check input samplesheet -> FASTQ file does not exist!\n   ${read}"        
-    if (file(read).size() == 0)  exit 1, "ERROR: Please check input samplesheet -> FASTQ file is empty!\n   ${read}"
-    return file(read)
+def checkReads(List row, minReads = 1) {
+    def meta = [:]
+    id = row[0]
+    reads = row[1..row.size()-1]
+    files = []
+
+    if (reads.size()) {       
+        for (read in reads) {
+            if (read == 'NA' | read == '') return 'NA'
+            if (!file(read).exists())    exit 1, "ERROR: Please check input samplesheet -> FASTQ file does not exist!\n   ${read}"        
+            if (file(read).size() == 0)  exit 1, "ERROR: Please check input samplesheet -> FASTQ file is empty!\n   ${read}"
+            files << file(read)
+        }
+    } else {
+        files = [NA]
+    }
+
+    return [id, files]
 }
