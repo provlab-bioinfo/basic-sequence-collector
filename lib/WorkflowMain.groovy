@@ -90,10 +90,10 @@ class WorkflowMain {
         // Check sequencing platform
         if (params.folder) {
             def platformList = ['illumina', 'nanopore']
-            if (!params.platform) {
-                log.error("Platform not specified. Valid options: '${platformList.join("', '")}'. E.g., '--platform illumina'. ")
-                System.exit(1)
-            } else if (!platformList.contains(params.platform)) {
+            // if (!params.platform) {
+            //     log.error("Platform not specified. Valid options: '${platformList.join("', '")}'. E.g., '--platform illumina'. ")
+            //     System.exit(1)
+            if (params.platform && !platformList.contains(params.platform)) {
                 log.error("Invalid platform option: '${params.platform}'. Valid options: '${platformList.join("', '")}'. E.g., '--platform illumina'. ")
                 System.exit(1)
             }

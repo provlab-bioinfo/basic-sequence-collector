@@ -54,7 +54,6 @@ process PROCESS_READ {
     """
 }
 
-
 process GZIP_FASTQ {
     label 'process_medium'
 

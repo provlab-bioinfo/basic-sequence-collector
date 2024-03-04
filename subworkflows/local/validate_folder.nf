@@ -21,12 +21,10 @@ workflow VALIDATE_FOLDER {
 
         //reads = nanopore_reads.map{ create_folder_read_channels(it) }
 
-        reads.view { "validate_folder | reads: ${it}" }
+        //reads.view { "validate_folder | reads: ${it}" }
 
         BUILD_SHEET(reads).csv.collectFile(name: 'samplesheet.csv', keepHeader: true).map { it }.set { samplesheet }
         
-        samplesheet.view { "validate_folder | samplesheet: ${it}" }
-
         log.debug "Folder is good ✅"
 
     emit:
@@ -97,8 +95,8 @@ def checkReads(List row, platform = null) {
     reads = row[1..row.size()-1]
     files = []
 
-    log.debug "Checking platform:"
-    log.debug platform
+    // log.debug "Checking platform:"
+    // log.debug platform
 
     if (reads.size()) {       
         for (read in reads) {
@@ -111,7 +109,7 @@ def checkReads(List row, platform = null) {
         files = [""]
     }
 
-    if (params.platform.equalsIgnoreCase('illumina')) {
+    if (platform.equalsIgnoreCase('illumina')) {
         if (files.size() == 2) {
             reads = [id, files[0], files[1] ]
         } else {
