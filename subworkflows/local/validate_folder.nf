@@ -9,25 +9,29 @@ workflow VALIDATE_FOLDER {
         illumina_reads = nanopore_reads = Channel.empty()
 
         def illumina_files = { file -> file.name.lastIndexOf('_L001').with {it != -1 ? file.name[0..<it] : file.name} }
-        Channel.fromFilePairs( params.illumina_search_path, flat: true, illumina_files) | map{ checkReads(it) } | set{ illumina_reads }
+        Channel.fromFilePairs( params.illumina_search_path, flat: true, illumina_files) | map{ checkReads(it, platform = "illumina") } | set{ illumina_reads }
 
         def nanopore_files = { file -> file.name.lastIndexOf('_').with {it != -1 ? file.name[0..<it] : file.name} }
-        Channel.fromFilePairs( params.nanopore_search_path, flat: true , size: -1, nanopore_files) | map{ checkReads(it) } | set{ nanopore_reads }
+        Channel.fromFilePairs( params.nanopore_search_path, flat: true , size: -1, nanopore_files) | map{ checkReads(it, platform = "nanopore") } | set{ nanopore_reads }
         
-        illumina_reads.view { "validate_folder | illumina_files: ${it}" }
-        nanopore_reads.view { "validate_folder | nanopore_files: ${it}" }
+        // illumina_reads.view { "validate_folder | illumina_files: ${it}" }
+        // nanopore_reads.view { "validate_folder | nanopore_files: ${it}" }
 
-        reads = illumina_reads.join(nanopore_reads, remainder: true)//.map{ create_folder_read_channels(it) }
+        reads = illumina_reads.join(nanopore_reads, remainder: true).map{ create_folder_read_channels(it) }
+
         //reads = nanopore_reads.map{ create_folder_read_channels(it) }
 
         reads.view { "validate_folder | reads: ${it}" }
 
-        BUILD_SHEET(reads).csv.collectFile(name: 'samplesheet.csv', keepHeader: true)//.map { it }.set { reads }
+        BUILD_SHEET(reads).csv.collectFile(name: 'samplesheet.csv', keepHeader: true).map { it }.set { samplesheet }
+        
+        samplesheet.view { "validate_folder | samplesheet: ${it}" }
 
         log.debug "Folder is good ✅"
 
     emit:
         reads // channel: [ val(meta), [ illumina ], nanopore ]
+        samplesheet
         versions = BUILD_SHEET.out.versions
 
 }
@@ -66,20 +70,15 @@ process BUILD_SHEET {
 
 // Function to get list of [ meta, illumina1, illumina2, nanopore ]
 def create_folder_read_channels(List row) {
-    
-    def meta = [:]
-    id = row[0]
-   
-    illumina1 = illumina2 = nanopore = ''
 
-    if (params.platform.equalsIgnoreCase('illumina')) {   
-        illumina1 = checkRead(row[1].toString())
-        if (row.size() > 2) illumina2 = checkRead(row[2].toString())
-    } else if (params.platform.equalsIgnoreCase('nanopore')) {
-        nanopore = checkRead(row[1].toString())
-    }
+    id = row[0]
+    illumina1 = row[1]
+    illumina2 = row.size() == 3 ? "" : row[2]
+    nanopore = row.size() == 3 ? row[2] : row[3]
     
     array = [ id, illumina1, illumina2, nanopore ]
+    array = array.stream().map(x -> (x == null)? "":x).collect()
+
     return array
 }
 
@@ -92,11 +91,14 @@ def create_folder_read_channels(List row) {
 //     return
 // }
 
-def checkReads(List row, minReads = 1) {
+def checkReads(List row, platform = null) {
     def meta = [:]
     id = row[0]
     reads = row[1..row.size()-1]
     files = []
+
+    log.debug "Checking platform:"
+    log.debug platform
 
     if (reads.size()) {       
         for (read in reads) {
@@ -106,8 +108,18 @@ def checkReads(List row, minReads = 1) {
             files << file(read)
         }
     } else {
-        files = [NA]
+        files = [""]
     }
 
-    return [id, files]
+    if (params.platform.equalsIgnoreCase('illumina')) {
+        if (files.size() == 2) {
+            reads = [id, files[0], files[1] ]
+        } else {
+            reads = [id, files.join(";") , "" ]
+        }
+    } else {
+        reads = [id, files.join(";") ]
+    }
+
+    return reads
 }
