@@ -53,41 +53,41 @@ process CHECK_SHEET {
 }
 
 
-// Function to get list of [ meta, [ illumina1, illumina2 ], nanopore ]
-def create_sheet_read_channels(LinkedHashMap row) {
+// // Function to get list of [ meta, [ illumina1, illumina2 ], nanopore ]
+// def create_sheet_read_channels(LinkedHashMap row) {
     
-    meta = row.id
-    illumina1 = checkReads(row.illumina1)
-    illumina2 = checkReads(row.illumina2)
-    nanopore  = checkReads(row.nanopore)
+//     meta = row.id
+//     illumina1 = checkReads(row.illumina1)
+//     illumina2 = checkReads(row.illumina2)
+//     nanopore  = checkReads(row.nanopore)
     
-    if (row.illumina1 == '' && row.illumina2 != '') {
-        illumina1 = illumina2
-        illumina2 = ''
-    }
+//     if (row.illumina1 == '' && row.illumina2 != '') {
+//         illumina1 = illumina2
+//         illumina2 = ''
+//     }
 
-    return [ meta, illumina1, illumina2, nanopore ] 
-}
+//     return [ meta, illumina1, illumina2, nanopore ] 
+// }
 
-def checkReads(List reads) {
-    out = []
-    if (reads.size()) {       
-        for (read in reads) {
-            if (read == 'NA' | read == '') continue
-            if (!file(read).exists())    exit 1, "ERROR: Please check input samplesheet -> FASTQ file does not exist!\n   ${read}"        
-            if (file(read).size() == 0)  exit 1, "ERROR: Please check input samplesheet -> FASTQ file is empty!\n   ${read}"
-            out << file(read)
-        }
-    } else {
-        out = [""]
-    }
+// def checkReads(List reads) {
+//     out = []
+//     if (reads.size()) {       
+//         for (read in reads) {
+//             if (read == 'NA' | read == '') continue
+//             if (!file(read).exists())    exit 1, "ERROR: Please check input samplesheet -> FASTQ file does not exist!\n   ${read}"        
+//             if (file(read).size() == 0)  exit 1, "ERROR: Please check input samplesheet -> FASTQ file is empty!\n   ${read}"
+//             out << file(read)
+//         }
+//     } else {
+//         out = [""]
+//     }
 
-    return out
-}
+//     return out
+// }
 
-def checkRead(String read) {
-    if (read == 'NA' | read == '') return 'NA'
-    if (!file(read).exists())    exit 1, "ERROR: Please check input samplesheet -> FASTQ file does not exist!\n   ${read}"        
-    if (file(read).size() == 0)  exit 1, "ERROR: Please check input samplesheet -> FASTQ file is empty!\n   ${read}"
-    return file(read)
-}
+// def checkRead(String read) {
+//     if (read == 'NA' | read == '') return 'NA'
+//     if (!file(read).exists())    exit 1, "ERROR: Please check input samplesheet -> FASTQ file does not exist!\n   ${read}"        
+//     if (file(read).size() == 0)  exit 1, "ERROR: Please check input samplesheet -> FASTQ file is empty!\n   ${read}"
+//     return file(read)
+// }

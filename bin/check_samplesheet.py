@@ -22,21 +22,20 @@ def print_error(error, context="", context_str=""):
     print(error_str)
     sys.exit(1)
 
+def isGZIP(filepath):
+    with open(filepath, 'rb') as test_f:
+        return test_f.read(2) == b'\x1f\x8b'
+
 def process_samples(ID, files, path_out, append = "NA"):
 
-    if len(files) == 0:
-        return ""
+    files = files.split(";")
+    files = [file for file in files if file.upper() != 'NA' and file != ""] # Remove any NA, empty files
+    if len(files) == 0: return "NA"
 
-    def isGZIP(filepath):
-        with open(filepath, 'rb') as test_f:
-            return test_f.read(2) == b'\x1f\x8b'
-
-    # tempFiles = []
     append = "" if append == "NA" else append
     outFile = open(ID + append + ".fastq.gz", 'wb')
 
     # Get files recursively from all folders
-    files = files.split(";")
     allFiles = []   
     while (True):
         for file in files:
@@ -92,12 +91,6 @@ def process_samples(ID, files, path_out, append = "NA"):
 
         with open (gzipFASTQ.name, 'rb') as src:
             shutil.copyfileobj(src, outFile)
-
-    # tempFiles.append(file)                  
-
-    # Remove the newly converted GZIP files
-    # for file in tempFiles:
-    #     os.remove(file)
 
     outPath = os.path.normpath(os.path.join(path_out, outFile.name))
     outFile.close()
