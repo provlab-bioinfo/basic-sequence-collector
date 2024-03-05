@@ -43,7 +43,7 @@ process CHECK_SHEET {
     check_samplesheet.py \\
         $samplesheet \\
         samplesheet2.csv \\
-        ${params.outdir}fastq
+        ${params.outdir}/fastq
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
