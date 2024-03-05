@@ -7,3 +7,4 @@ dependencies:
   - python=3.10
   - nextflow=23.10.0
   - pyyaml=6.0.1
+  - pgzip=0.3.5

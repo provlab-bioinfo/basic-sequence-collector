@@ -3,7 +3,7 @@
 # TODO nf-core: Update the script to check the samplesheet
 # This script is based on the example at: https://raw.githubusercontent.com/nf-core/test-datasets/viralrecon/samplesheet/samplesheet_test_illumina_amplicon.csv
 
-import os, sys, errno, argparse, pathlib, gzip, shutil
+import os, sys, errno, argparse, pathlib, gzip, shutil, pgzip, tempfile
 
 def parse_args(args=None):
     Description = "Reformat nf-core/pathogen samplesheet file and check its contents."
@@ -31,38 +31,73 @@ def process_samples(ID, files, path_out, append = "NA"):
         with open(filepath, 'rb') as test_f:
             return test_f.read(2) == b'\x1f\x8b'
 
-    tempFiles = []
+    # tempFiles = []
     append = "" if append == "NA" else append
     outFile = open(ID + append + ".fastq.gz", 'wb')
 
-    for file in files.split(";"):
+    # Get files recursively from all folders
+    files = files.split(";")
+    allFiles = []   
+    while (True):
+        for file in files:
+            print(file)
+            if os.path.isdir(file):
+                f = list(map(lambda x: os.path.join(os.path.abspath(file), x),os.listdir(file)))
+                if len(f):
+                    allFiles.extend(f)
+            elif os.path.isfile(file):
+                allFiles.append(file)
+        if (files == allFiles): 
+            files = allFiles
+            break
+        files = allFiles
+        allFiles = []        
+
+    print(f"allFiles: {allFiles}")
+
+    nonGZIP = []
+
+    for file in files:
         # Check if proper extension
         if file.upper() == 'NA':
             continue
         elif file.find(" ") != -1:
             print_error("FastQ file must not contain spaces!", "File", file)
-        elif not file.endswith((".fastq.gz",".fq.gz",".fq",".gz")):
+        elif not file.endswith((".fastq.gz",".fq.gz",".fq",".fastq")):
             print_error("FastQ file does not have extension '.fastq.gz', '.fq.gz', '.fastq', or '.fq'!", "File", file)
 
         # Check if exists
         if not os.path.isfile(file):
             print_error("FastQ file does not exist!", "File", file)
         
-        # Convert to GZIP, if necessary
-        if not isGZIP(file):
-            gzipFile = file + ".gz"
-            with open(file, 'rb') as src, gzip.open(file + ".gz", 'wb') as dst:
-                dst.writelines(src)
-                tempFiles.append(dst.name)
-            file = gzipFile
+        # Add file to outfile if GZIP
+        if isGZIP(file):   
+            with open(file, 'rb') as inFile:
+                shutil.copyfileobj(inFile, outFile)
+        else:          
+        # Add to list to GZIP later if not
+            print(f"Adding file: {file}")
+            nonGZIP.append(file)              
 
-        # Concat to out file
-        with open(file, 'rb') as inFile:
-            shutil.copyfileobj(inFile, outFile)
-        
+    # GZIP files
+    if len(nonGZIP):   
+        catFASTQ = tempfile.NamedTemporaryFile()
+        gzipFASTQ = tempfile.NamedTemporaryFile()
+        for file in nonGZIP:
+            with open(file, 'rb') as inFile:
+                shutil.copyfileobj(inFile, catFASTQ)
+
+        with open(catFASTQ.name, 'rb') as src, pgzip.open(gzipFASTQ, 'wb') as dst:
+            dst.writelines(src)
+
+        with open (gzipFASTQ.name, 'rb') as src:
+            shutil.copyfileobj(src, outFile)
+
+    # tempFiles.append(file)                  
+
     # Remove the newly converted GZIP files
-    for file in tempFiles:
-        os.remove(file)
+    # for file in tempFiles:
+    #     os.remove(file)
 
     outPath = os.path.normpath(os.path.join(path_out, outFile.name))
     outFile.close()
