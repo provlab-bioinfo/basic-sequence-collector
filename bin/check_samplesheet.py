@@ -64,7 +64,7 @@ def process_samples(ID, files, path_out, append = "NA"):
     for file in tempFiles:
         os.remove(file)
 
-    outPath = os.path.join(path_out, outFile.name)
+    outPath = os.path.normpath(os.path.join(path_out, outFile.name))
     outFile.close()
 
     return outPath

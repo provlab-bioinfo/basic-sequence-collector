@@ -23,17 +23,17 @@ workflow {
         VALIDATE_FOLDER(Channel.fromPath(params.folder))
         samplesheet = VALIDATE_FOLDER.out.samplesheet
         versions = versions.mix(VALIDATE_FOLDER.out.versions)
+        samplesheet.view{ "VALIDATE_FOLDER | sheet: ${it}" };
     } else {
-        samplesheet = file(params.sheet)
+        samplesheet = Channel.fromPath(params.sheet)
+        samplesheet.view{ "INPUT_SHEET | sheet: ${it}" };
     }
-
-    samplesheet.view{ "VALIDATE_FOLDER | sheet: ${it}" };
 
     //SUBWORKFLOW: Read in samplesheet, validate, and stage input files
     VALIDATE_SHEET(samplesheet)
     versions = versions.mix(VALIDATE_SHEET.out.versions)
 
-    VALIDATE_SHEET.out.sheet.view{ "VALIDATE_SHEET | sheet: ${it}" };
+    VALIDATE_SHEET.out.samplesheet.view{ "VALIDATE_SHEET | sheet: ${it}" };
 
     // PROCESS_SAMPLES(VALIDATE_SHEET.out.reads)
     // versions = versions.mix(PROCESS_SAMPLES.out.versions)
@@ -44,6 +44,6 @@ workflow {
     //PROCESS_FILES.out.reads.view()
 
     emit:
-        reads = VALIDATE_FOLDER.out.reads //VALIDATE_SHEET.out.reads
+        samplesheet = VALIDATE_SHEET.out.samplesheet //VALIDATE_SHEET.out.reads
         versions
 }

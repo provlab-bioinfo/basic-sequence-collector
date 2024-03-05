@@ -14,7 +14,7 @@ workflow VALIDATE_SHEET {
         log.debug "Sample sheet is good ✅"
 
     emit:
-        sheet      // channel: [ val(meta), [ illumina ], nanopore ]
+        samplesheet = sheet      // channel: [ val(meta), [ illumina ], nanopore ]
         versions = CHECK_SHEET.out.versions // channel: [ versions.yml ]
 }
 
