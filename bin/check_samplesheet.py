@@ -3,7 +3,7 @@
 # TODO nf-core: Update the script to check the samplesheet
 # This script is based on the example at: https://raw.githubusercontent.com/nf-core/test-datasets/viralrecon/samplesheet/samplesheet_test_illumina_amplicon.csv
 
-import os, sys, errno, argparse, pathlib, gzip, shutil, pgzip, tempfile
+import os, sys, argparse, pathlib, shutil, pgzip, tempfile
 
 def parse_args(args=None):
     Description = "Reformat nf-core/pathogen samplesheet file and check its contents."
@@ -151,7 +151,7 @@ def check_samplesheet(file_in, file_out, path_out):
             
             illumina1 = process_samples(id, illumina1, path_out, "_R1")
             illumina2 = process_samples(id, illumina2, path_out, "_R2")
-            nanopore = process_samples(id, nanopore, path_out, "")
+            nanopore = process_samples(id, nanopore, path_out, "_ONT")
                        
             ## Create sample mapping dictionary = { sample: [ single_end, illumina1, illumina2 ] }
             sample_info = [illumina1, illumina2, nanopore]
