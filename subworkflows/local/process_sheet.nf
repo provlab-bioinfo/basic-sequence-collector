@@ -1,12 +1,15 @@
-workflow VALIDATE_SHEET {
+workflow PROCESS_SHEET {
     take:
         samplesheet // file: /path/to/samplesheet.csv, format of [ meta, illumina1, illumina2, nanopore ]
+        output
 
     main:
 
         log.debug "Checking sample sheet..."
 
-        CHECK_SHEET ( samplesheet ).csv.collectFile(name: 'samplesheet.csv', keepHeader: true).map { it }.set { sheet }
+        log.debug output.toString()
+
+        CHECK_SHEET ( samplesheet , output ).csv.collectFile(name: 'samplesheet.csv', keepHeader: true).map { it }.set { sheet }
             //.splitCsv ( header:true, sep:',' )        
             //.map { create_sheet_read_channels(it) }
             //.set { sheet }
@@ -29,6 +32,7 @@ process CHECK_SHEET {
 
     input:
         path samplesheet
+        val output
 
     output:
         path '*.csv'       , emit: csv
@@ -43,7 +47,7 @@ process CHECK_SHEET {
     check_samplesheet.py \\
         $samplesheet \\
         samplesheet2.csv \\
-        ${params.outdir}/fastq
+        $output/fastq
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

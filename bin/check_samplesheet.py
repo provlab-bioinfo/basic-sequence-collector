@@ -39,7 +39,7 @@ def process_samples(ID, files, path_out, append = "NA"):
     allFiles = []   
     while (True):
         for file in files:
-            print(file)
+            # print(file)
             if os.path.isdir(file):
                 f = list(map(lambda x: os.path.join(os.path.abspath(file), x),os.listdir(file)))
                 if len(f):
@@ -52,7 +52,7 @@ def process_samples(ID, files, path_out, append = "NA"):
         files = allFiles
         allFiles = []        
 
-    print(f"allFiles: {allFiles}")
+    # print(f"allFiles: {allFiles}")
 
     nonGZIP = []
 
@@ -75,7 +75,7 @@ def process_samples(ID, files, path_out, append = "NA"):
                 shutil.copyfileobj(inFile, outFile)
         else:          
         # Add to list to GZIP later if not
-            print(f"Adding file: {file}")
+            #print(f"Adding file: {file}")
             nonGZIP.append(file)              
 
     # GZIP files
@@ -91,6 +91,8 @@ def process_samples(ID, files, path_out, append = "NA"):
 
         with open (gzipFASTQ.name, 'rb') as src:
             shutil.copyfileobj(src, outFile)
+
+
 
     outPath = os.path.normpath(os.path.join(path_out, outFile.name))
     outFile.close()
@@ -152,6 +154,8 @@ def check_samplesheet(file_in, file_out, path_out):
             illumina1 = process_samples(id, illumina1, path_out, "_R1")
             illumina2 = process_samples(id, illumina2, path_out, "_R2")
             nanopore = process_samples(id, nanopore, path_out, "_ONT")
+
+            print(f"   nanopore: {nanopore}")
                        
             ## Create sample mapping dictionary = { sample: [ single_end, illumina1, illumina2 ] }
             sample_info = [illumina1, illumina2, nanopore]

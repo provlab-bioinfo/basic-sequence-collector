@@ -24,7 +24,7 @@ class WorkflowMain {
     // Generate help string
     //
     public static String help(workflow, params) {
-        def command = "nextflow run ${workflow.manifest.name} --input samplesheet.csv --outdir results --platform illumina -profile singularity"
+        def command = "nextflow run ${workflow.manifest.name} --input samplesheet.csv --output results --platform illumina -profile singularity"
         def help_string = ''
         help_string += NfcoreTemplate.logo(workflow, params.monochrome_logs)
         help_string += NfcoreSchema.paramsHelp(workflow, params, command)
@@ -100,8 +100,8 @@ class WorkflowMain {
         }
 
         // Check output dir has been provided
-        if (!params.outdir) {
-            log.error("Provide an output directory for the results. E.g., '--outdir ./results'")
+        if (!params.output) {
+            log.error("Provide an output directory for the results. E.g., '--output ./results'")
             System.exit(1)
         }
     }

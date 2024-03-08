@@ -1,4 +1,4 @@
-workflow VALIDATE_FOLDER {
+workflow PROCESS_FOLDER {
     take:
         folder // file: /path/to/samplesheet.csv
 
