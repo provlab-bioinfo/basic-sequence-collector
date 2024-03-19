@@ -20,6 +20,7 @@ conda activate basic-sequence-collector
 nextflow run pipelines/basic-sequence-collector \
   --folder </path/to/inputdir> | --samplesheet </path/to/samplesheet> \
   --output </path/to/output> \
+  --label <> \
   [ --platform <'illumina' | 'nanopore'> ] \
   [ --prefix <prefix> ]
 ```
@@ -32,15 +33,7 @@ conda env create -f ./environments/environment.yml
 ```
 
 ## Input
-
-**`--output`**: The output directory. See [Output](#output).
-<br>
-**`--platform`**: Sequencing platform. Either `illumina` or `nanopore`. Necessary when using `--folder`.
-<br> 
-**`--prefix`**: An optional prefix to be prepended to each FASTQ file.
-<br>
 **`--folder`**: For a typical sequencing run, only the run folder needs to be specified as the FASTQ files will be searched for automatically. The file format must be as follows:
-
 - Illumina: Paired reads are assumed and must use the default [Illumina nomenclature](https://support.illumina.com/help/BaseSpace_OLH_009008/Content/Source/Informatics/BS/NamingConvention_FASTQ-files-swBS.htm#) of `{SampleName}_S#_L001_R#_001.fastq.gz`. The script will search for `R1` and `R2`, and assign sample names as `SampleName_S1`.
 - Nanopore: Accepts single or split FASTQ files, and must use the default Nanopore nomenclature of `{FlowCellID}_pass_barcode##_{random}[_#].fastq.gz`. Files containing the same barcode and terminated with `_#` will be automatically concatenated. Sample name will be assigned as `barcode##`.
 
@@ -55,6 +48,15 @@ SAMPLE-02   ,/path/to/SAMPLE-02_R1.fq   ,/path/to/SAMPLE-02_R2.fq   ,
 SAMPLE-03   ,                           ,                           ,/path/to/SAMPLE-03.fq/
 ```
 
+**`--output`**: The output directory. See [Output](#output).
+<br>
+**`--label`**: The label to output directory. See [Output](#output). Default is 'raw'.
+<br>
+**`--platform`**: Sequencing platform. Either `illumina` or `nanopore`. Necessary when using `--folder`.
+<br> 
+**`--prefix`**: An optional prefix to be prepended to each FASTQ file.
+<br>
+
 ## Output
 
 The output file structure is determined by the `output`:
@@ -65,6 +67,7 @@ The output file structure is determined by the `output`:
    │      ├── samplesheet.csv
    │      └── software_versions.yml
    └── <label>
+          ├── samplesheet.csv
           └── fastq
                  └── [prefix_]<ID>.fastq[.gz]
 ```

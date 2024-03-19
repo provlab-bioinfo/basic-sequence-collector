@@ -46,6 +46,12 @@
                         "illumina",
                         "nanopore"
                     ]
+                },                
+                "label": {
+                    "type": "string",
+                    "fa_icon": "fas fa-book",
+                    "default": "raw",
+                    "description": "The label of the output directory."
                 },
                 "igenomes_ignore": {
                     "type": "boolean",

@@ -80,23 +80,11 @@ def create_folder_read_channels(List row) {
     return array
 }
 
-// def createSampleSheet(fileName) {
-//     import org.apache.commons.csv.CSVPrinter
-//     def FILE_HEADER = ['ID','illumina1','illumina2','nanopore']    
-//     def csvFilePrinter = new CSVPrinter(fileWriter, CSVFormat.DEFAULT)
-//     csvFilePrinter.printRecord(FILE_HEADER)
-//     reads.each{ read -> csvFilePrinter.printRecord(read)}
-//     return
-// }
-
 def checkReads(List row, platform = null) {
     def meta = [:]
     id = row[0]
     reads = row[1..row.size()-1]
     files = []
-
-    // log.debug "Checking platform:"
-    // log.debug platform
 
     if (reads.size()) {       
         for (read in reads) {
