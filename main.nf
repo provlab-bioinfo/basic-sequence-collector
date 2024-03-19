@@ -9,6 +9,7 @@
 nextflow.enable.dsl = 2
 WorkflowMain.initialise(workflow, params, log)
 
+include { SAVE_SHEET }               from './subworkflows/local/process_sheet'
 include { PROCESS_SHEET }               from './subworkflows/local/process_sheet'
 include { PROCESS_FOLDER }              from './subworkflows/local/process_folder'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from './modules/nf-core/custom/dumpsoftwareversions/main'
@@ -26,16 +27,21 @@ workflow {
         PROCESS_FOLDER(Channel.fromPath(folder))
         samplesheet = PROCESS_FOLDER.out.samplesheet
         versions = versions.mix(PROCESS_FOLDER.out.versions)
-        samplesheet.view{ "PROCESS_FOLDER | sheet: ${it}" };
+        //samplesheet.view{ "PROCESS_FOLDER | sheet: ${it}" };
     } else {
         samplesheet = Channel.fromPath(samplesheet)
-        samplesheet.view{ "INPUT_SHEET | sheet: ${it}" };
+        //samplesheet.view{ "INPUT_SHEET | sheet: ${it}" };
     }
 
     //SUBWORKFLOW: Read in samplesheet, validate, and stage input files
-    PROCESS_SHEET(samplesheet, output)
+    SAVE_SHEET(samplesheet)
+    versions = versions.mix(SAVE_SHEET.out.versions)
+    //SAVE_SHEET.out.samplesheet.view{ "SAVE_SHEET | sheet: ${it}" };
+
+    PROCESS_SHEET(SAVE_SHEET.out.samplesheet, output)
     versions = versions.mix(PROCESS_SHEET.out.versions)
-    PROCESS_SHEET.out.samplesheet.view{ "PROCESS_SHEET | sheet: ${it}" };
+
+    //PROCESS_SHEET.out.samplesheet.view{ "PROCESS_SHEET | sheet: ${it}" };
 
     // SUBWORKFLOW: Get versioning
     CUSTOM_DUMPSOFTWAREVERSIONS (versions.unique().collectFile(name: 'collated_versions.yml'))
