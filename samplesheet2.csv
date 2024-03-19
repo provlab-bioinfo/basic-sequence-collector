@@ -1,0 +1,3 @@
+id,illumina1,illumina2,nanopore
+23EX-131R00115_T1,/nfs/Genomics_DEV/projects/alindsay/Projects/basic-sequence-collecter/testOutput/sheet/colin/fastq/23EX-131R00115_R1.fastq.gz,/nfs/Genomics_DEV/projects/alindsay/Projects/basic-sequence-collecter/testOutput/sheet/colin/fastq/23EX-131R00115_R2.fastq.gz,/nfs/Genomics_DEV/projects/alindsay/Projects/basic-sequence-collecter/testOutput/sheet/colin/fastq/23EX-131R00115_ONT.fastq.gz
+23PN-214M00160_T1,NA,NA,/nfs/Genomics_DEV/projects/alindsay/Projects/basic-sequence-collecter/testOutput/sheet/colin/fastq/23PN-214M00160_ONT.fastq.gz

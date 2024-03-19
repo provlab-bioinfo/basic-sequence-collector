@@ -82,8 +82,8 @@ class WorkflowMain {
         NfcoreTemplate.awsBatch(workflow, params)
 
         // Check input has been provided
-        if ((!params.folder && !params.sheet) || (params.folder && params.sheet)) {
-            log.error("Provide only one of an input samplesheet or input folder to the pipeline. E.g., '--sheet samplesheet.csv' or '--folder /path/to/folder/")
+        if ((!params.folder && !params.samplesheet) || (params.folder && params.samplesheet)) {
+            log.error("Provide only one of an input samplesheet or input folder to the pipeline. E.g., '--samplesheet samplesheet.csv' or '--folder /path/to/folder/")
             System.exit(1)
         }
 

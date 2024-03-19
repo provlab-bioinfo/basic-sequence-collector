@@ -14,7 +14,7 @@
                 "output"
             ],
             "properties": {
-                "sheet": {
+                "samplesheet": {
                     "type": "string",
                     "format": "file-path",
                     "mimetype": "text/csv",
