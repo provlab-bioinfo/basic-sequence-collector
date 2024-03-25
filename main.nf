@@ -18,18 +18,19 @@ workflow {
     
     versions = Channel.empty()
 
-    folder =      toAbsPath(params.folder)
-    samplesheet = toAbsPath(params.samplesheet)
-    output =      toAbsPath(params.output)
+    input =       toAbsPath(params.input)
+    output =      toAbsPath(params.output) + "/" + params.label
+    
+    inputPath = new File(input);
 
     // SUBWORKFLOW: Read in folder and create the sample sheet
-    if (folder) {
-        PROCESS_FOLDER(Channel.fromPath(folder))
+    if (inputPath.isDirectory()) {
+        PROCESS_FOLDER(Channel.fromPath(input))
         samplesheet = PROCESS_FOLDER.out.samplesheet
         versions = versions.mix(PROCESS_FOLDER.out.versions)
         //samplesheet.view{ "PROCESS_FOLDER | sheet: ${it}" };
-    } else {
-        samplesheet = Channel.fromPath(samplesheet)
+    } else if (inputPath.isFile()) {
+        samplesheet = Channel.fromPath(input)
         //samplesheet.view{ "INPUT_SHEET | sheet: ${it}" };
     }
 

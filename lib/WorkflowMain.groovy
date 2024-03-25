@@ -24,7 +24,7 @@ class WorkflowMain {
     // Generate help string
     //
     public static String help(workflow, params) {
-        def command = "nextflow run ${workflow.manifest.name} --input samplesheet.csv --output results --platform illumina -profile singularity"
+        def command = "nextflow run ${workflow.manifest.name} --input samplesheet.csv --output results -profile singularity"
         def help_string = ''
         help_string += NfcoreTemplate.logo(workflow, params.monochrome_logs)
         help_string += NfcoreSchema.paramsHelp(workflow, params, command)
@@ -82,21 +82,9 @@ class WorkflowMain {
         NfcoreTemplate.awsBatch(workflow, params)
 
         // Check input has been provided
-        if ((!params.folder && !params.samplesheet) || (params.folder && params.samplesheet)) {
-            log.error("Provide only one of an input samplesheet or input folder to the pipeline. E.g., '--samplesheet samplesheet.csv' or '--folder /path/to/folder/")
+        if (!params.input) {
+            log.error("Provide only one of an input samplesheet or input folder to the pipeline. E.g., '--input samplesheet.csv' or '--input /path/to/folder/")
             System.exit(1)
-        }
-
-        // Check sequencing platform
-        if (params.folder) {
-            def platformList = ['illumina', 'nanopore']
-            // if (!params.platform) {
-            //     log.error("Platform not specified. Valid options: '${platformList.join("', '")}'. E.g., '--platform illumina'. ")
-            //     System.exit(1)
-            if (params.platform && !platformList.contains(params.platform)) {
-                log.error("Invalid platform option: '${params.platform}'. Valid options: '${platformList.join("', '")}'. E.g., '--platform illumina'. ")
-                System.exit(1)
-            }
         }
 
         // Check output dir has been provided

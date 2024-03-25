@@ -3,7 +3,7 @@
 # TODO nf-core: Update the script to check the samplesheet
 # This script is based on the example at: https://raw.githubusercontent.com/nf-core/test-datasets/viralrecon/samplesheet/samplesheet_test_illumina_amplicon.csv
 
-import os, sys, argparse, pathlib, shutil, pgzip, tempfile
+import os, sys, argparse, pathlib, shutil, pgzip, tempfile 
 
 def parse_args(args=None):
     Description = "Reformat nf-core/pathogen samplesheet file and check its contents."

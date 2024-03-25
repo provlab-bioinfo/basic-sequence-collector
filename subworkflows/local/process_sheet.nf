@@ -60,10 +60,10 @@ process CHECK_SHEET {
     tag "$samplesheet"
     label 'process_medium'
 
-    conda "conda-forge::python=3.9.5"
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/python:3.9--1' :
-        'biocontainers/python:3.9--1' }"
+    //conda "conda-forge::python=3.9.5"
+    //container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    //    'https://depot.galaxyproject.org/singularity/python:3.9--1' :
+    //    'biocontainers/python:3.9--1' }"
 
     input:
         path samplesheet // file: /path/to/samplesheet.csv
@@ -77,6 +77,7 @@ process CHECK_SHEET {
     when:
         task.ext.when == null || task.ext.when  
 
+    //beforeScript 'chmod 777 check_samplesheet.py'
     script:
     """
     check_samplesheet.py \\

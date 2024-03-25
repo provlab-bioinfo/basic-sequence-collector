@@ -14,7 +14,14 @@
                 "output"
             ],
             "properties": {
-                "samplesheet": {
+                "input": {
+                    "type": "string",
+                    "format": "path",
+                    "description": "Path to either a folder containing FASTQ files or a comma-separated samplesheet file containing information about the samples in the experiment.",
+                    "help_text": "The folder needs to contain FASTQ files with a naming schema consistant with default Illumina or Nanopore format. See [usage docs](https://github.com/provlab-bioinfo/basic-sequence-stats#input). The samplesheet is formatted as a comma-separated file with 3 columns, and a header row. See [usage docs](https://nf-co.re/pathogenseq/usage#samplesheet-input).",
+                    "fa_icon": "fas fa-folder-open"
+                },
+                    "samplesheet": {
                     "type": "string",
                     "format": "file-path",
                     "mimetype": "text/csv",
@@ -36,17 +43,7 @@
                     "format": "directory-path",
                     "description": "The output directory where the results will be saved. You have to use absolute paths to storage on Cloud infrastructure.",
                     "fa_icon": "fas fa-folder-open"
-                },
-                "platform": {
-                    "type": "string",
-                    "fa_icon": "fas fa-hdd",
-                    "default": "illumina",
-                    "description": "Specifies the platform used to generate the sequences - available options are 'illumina|nanopore'.",
-                    "enum": [
-                        "illumina",
-                        "nanopore"
-                    ]
-                },                
+                },               
                 "label": {
                     "type": "string",
                     "fa_icon": "fas fa-book",

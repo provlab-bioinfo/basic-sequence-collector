@@ -8,6 +8,7 @@ A collector for FASTQ files from Illumina (single- and paired-end short reads) o
 - [Quick-Start Guide](#quick-start%guide)
 - [Dependencies](#dependencies)
 - [Installation](#installation)
+- [Arguments](#arguments)
 - [Input](#input)
 - [Output](#output)
 - [Pipeline Usage](#pipeline%usage)
@@ -20,9 +21,7 @@ conda activate basic-sequence-collector
 nextflow run pipelines/basic-sequence-collector \
   --folder </path/to/inputdir> | --samplesheet </path/to/samplesheet> \
   --output </path/to/output> \
-  --label <> \
-  [ --platform <'illumina' | 'nanopore'> ] \
-  [ --prefix <prefix> ]
+  --label <>
 ```
 
 ## Dependencies
@@ -32,12 +31,28 @@ nextflow run pipelines/basic-sequence-collector \
 conda env create -f ./environments/environment.yml
 ```
 
-## Input
-**`--folder`**: For a typical sequencing run, only the run folder needs to be specified as the FASTQ files will be searched for automatically. The file format must be as follows:
+## Arguments
+**`--input`**: Either a folder containing FASTQ files, or a sample sheet specifying FASTQ files/directories corresponding to a sample. See [Input](#input).
+<br>
+**`--output`**: The output directory. See [Output](#output).
+<br>
+**`--label`**: The label to output directory. See [Output](#output). Default is 'raw'.
+<br>
+
+## Input:
+Formats for **folders** and **sample sheets** in `--input` must be as follows:
+
+<table border="0"><tr><td style="vertical-align:top"><b>Folder</b></td><td>
+
+For a typical sequencing run, only the run folder needs to be specified as the FASTQ files will be searched for automatically. The file format must be as follows:
+    
 - Illumina: Paired reads are assumed and must use the default [Illumina nomenclature](https://support.illumina.com/help/BaseSpace_OLH_009008/Content/Source/Informatics/BS/NamingConvention_FASTQ-files-swBS.htm#) of `{SampleName}_S#_L001_R#_001.fastq.gz`. The script will search for `R1` and `R2`, and assign sample names as `SampleName_S1`.
 - Nanopore: Accepts single or split FASTQ files, and must use the default Nanopore nomenclature of `{FlowCellID}_pass_barcode##_{random}[_#].fastq.gz`. Files containing the same barcode and terminated with `_#` will be automatically concatenated. Sample name will be assigned as `barcode##`.
 
-**`--samplesheet`**: For more complicated runs, such as samples with both Illumina and Nanopore reads, a CSV file can specify an `ID` and list of `reads`. Each read must be in `.fastq` or `.fastq.gz` format, and paired reads are accepted for Illumina runs in `illumina1` and `illumina2`. Multiple files or directories can be specified in each field. If directories, the search criteria specified in `--folder` will be used.  These files will be concatenated and converted to `fastq.gz` if necessary. 
+</td></tr>
+<tr><td style="vertical-align:top"><b>Sample&nbsp;sheet</b></td><td>
+
+For more complicated runs, such as samples with both Illumina and Nanopore reads, a CSV file can specify an `ID` and list of `reads`. Each read must be in `.fastq` or `.fastq.gz` format, and paired reads are accepted for Illumina runs in `illumina1` and `illumina2`. Multiple files or directories can be specified in each field. If directories, the search criteria specified in `--folder` will be used.  These files will be concatenated and converted to `fastq.gz` if necessary. 
 
 For example:
 
@@ -48,14 +63,8 @@ SAMPLE-02   ,/path/to/SAMPLE-02_R1.fq   ,/path/to/SAMPLE-02_R2.fq   ,
 SAMPLE-03   ,                           ,                           ,/path/to/SAMPLE-03.fq/
 ```
 
-**`--output`**: The output directory. See [Output](#output).
-<br>
-**`--label`**: The label to output directory. See [Output](#output). Default is 'raw'.
-<br>
-**`--platform`**: Sequencing platform. Either `illumina` or `nanopore`. Necessary when using `--folder`.
-<br> 
-**`--prefix`**: An optional prefix to be prepended to each FASTQ file.
-<br>
+</td></tr></table>
+
 
 ## Output
 
