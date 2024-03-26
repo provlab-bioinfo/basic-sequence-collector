@@ -43,6 +43,7 @@ def process_samples(ID, files, path_out, append = "NA"):
             if os.path.isdir(file):
                 f = list(map(lambda x: os.path.join(os.path.abspath(file), x),os.listdir(file)))
                 if len(f):
+                    f = [x for x in f if x.endswith((".fastq.gz",".fq.gz",".fq",".fastq"))]
                     allFiles.extend(f)
             elif os.path.isfile(file):
                 allFiles.append(file)
