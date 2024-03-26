@@ -32,7 +32,8 @@ process COPY_SHEET {
 
     script:
     """
-    cp $samplesheet samplesheet.new.csv
+    cp $samplesheet \\
+        samplesheet.new.csv
     
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -47,12 +48,10 @@ workflow PROCESS_SHEET {
         output //path: //path/to/output
 
     main:
-        log.debug "Checking sample sheet..."
-        CHECK_SHEET ( samplesheet , output ).csv.collectFile(name: 'samplesheet.csv', keepHeader: true).map { it }.set { samplesheet }
-        log.debug "Sample sheet is good ✅"
+        CHECK_SHEET ( samplesheet , output )
 
     emit:
-        samplesheet // file: /path/to/samplesheet.csv
+        samplesheet = CHECK_SHEET.out.samplesheet// file: /path/to/samplesheet.csv
         versions = CHECK_SHEET.out.versions // channel: [ versions.yml ]
 }
 
@@ -70,14 +69,13 @@ process CHECK_SHEET {
         val output //path: //path/to/output
 
     output:
-        path '*.csv'       , emit: csv
-        path '*.gz'        , emit: files
-        path "versions.yml", emit: versions
+        path 'samplesheet.csv', emit: samplesheet
+        path '*.gz'           , emit: files
+        path "versions.yml"   , emit: versions
 
     when:
         task.ext.when == null || task.ext.when  
 
-    //beforeScript 'chmod 777 check_samplesheet.py'
     script:
     """
     check_samplesheet.py \\

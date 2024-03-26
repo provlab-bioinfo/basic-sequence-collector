@@ -37,7 +37,8 @@ process COLLECT_FILES {
         nextflow run https://github.com/provlab-bioinfo/basic-sequence-collecter \
         --input ${input} \
         --output ${output} \
-        --label ${label}
+        --label ${label} \
+        -r main
 
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":

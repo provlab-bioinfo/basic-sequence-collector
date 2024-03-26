@@ -3,9 +3,6 @@ workflow PROCESS_FOLDER {
         folder // file: /path/to/samplesheet.csv
 
     main:
-
-        log.debug "Checking folder..."
-
         illumina_reads = nanopore_reads = Channel.empty()
 
         def illumina_files = { file -> file.name.lastIndexOf('_L001').with {it != -1 ? file.name[0..<it] : file.name} }
@@ -13,20 +10,11 @@ workflow PROCESS_FOLDER {
 
         def nanopore_files = { file -> file.name.lastIndexOf('_').with {it != -1 ? file.name[0..<it] : file.name} }
         Channel.fromFilePairs( params.nanopore_search_path, flat: true , size: -1, nanopore_files) | map{ checkReads(it, platform = "nanopore") } | set{ nanopore_reads }
-        
-        // illumina_reads.view { "validate_folder | illumina_files: ${it}" }
-        // nanopore_reads.view { "validate_folder | nanopore_files: ${it}" }
 
         reads = illumina_reads.join(nanopore_reads, remainder: true).map{ create_folder_read_channels(it) }
 
-        //reads = nanopore_reads.map{ create_folder_read_channels(it) }
-
-        //reads.view { "validate_folder | reads: ${it}" }
-
         BUILD_SHEET(reads).csv.collectFile(name: 'samplesheet.csv', keepHeader: true).map { it }.set { samplesheet }
         
-        log.debug "Folder is good ✅"
-
     emit:
         reads // channel: [ val(meta), [ illumina ], nanopore ]
         samplesheet
