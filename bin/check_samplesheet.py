@@ -122,6 +122,8 @@ def check_samplesheet(file_in, file_out, path_out):
         HEADER = ["ID", "illumina1", "illumina2", "nanopore"]
         header = [x.strip('"') for x in fin.readline().strip().split(",")]
         if header[: len(HEADER)] != HEADER:
+            print(HEADER)
+            print(header)
             print("ERROR: Please check samplesheet header -> {} != {}".format(",".join(header), ",".join(HEADER)))
             sys.exit(1)
         
