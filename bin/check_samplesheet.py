@@ -119,7 +119,7 @@ def check_samplesheet(file_in, file_out, path_out):
         ## Check header
         MIN_COLS = 2
         # TODO nf-core: Update the column names for the input samplesheet
-        HEADER = ["ID", "illumina1", "illumina2", "nanopore"]
+        HEADER = ["id", "illumina1", "illumina2", "nanopore"]
         header = [x.strip('"') for x in fin.readline().strip().split(",")]
         if header[: len(HEADER)] != HEADER:
             print(HEADER)
