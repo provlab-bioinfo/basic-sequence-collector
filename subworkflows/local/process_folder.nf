@@ -44,7 +44,7 @@ process BUILD_SHEET {
     script: // This script is bundled with the pipeline, in nf-core/rnaseq/bin/
         """
         touch ${id}_samplesheet.csv
-        echo "ID,illumina1,illumina2,nanopore" >> ${id}_samplesheet.csv
+        echo "id,illumina1,illumina2,nanopore" >> ${id}_samplesheet.csv
         echo "${id},${illumina1},${illumina2},${nanopore}" >> ${id}_samplesheet.csv
 
         cat <<-END_VERSIONS > versions.yml

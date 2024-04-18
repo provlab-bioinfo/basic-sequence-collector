@@ -47,6 +47,8 @@ workflow {
     // SUBWORKFLOW: Get versioning
     CUSTOM_DUMPSOFTWAREVERSIONS (versions.unique().collectFile(name: 'collated_versions.yml'))
 
+    PROCESS_SHEET.out.samplesheet.view{ "PROCESS_SHEET: ${it}"}
+
     emit:
         samplesheet = PROCESS_SHEET.out.samplesheet //PROCESS_SHEET.out.reads
         versions

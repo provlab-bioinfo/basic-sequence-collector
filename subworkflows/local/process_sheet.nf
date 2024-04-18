@@ -33,7 +33,7 @@ process COPY_SHEET {
     script:
     """
     cp $samplesheet \\
-        samplesheet.new.csv
+        samplesheet.old.csv
     
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -69,7 +69,7 @@ process CHECK_SHEET {
         val output //path: //path/to/output
 
     output:
-        path 'samplesheet.csv', emit: samplesheet
+        path '*.csv', emit: samplesheet
         path '*.gz'           , emit: files
         path "versions.yml"   , emit: versions
 
@@ -79,8 +79,8 @@ process CHECK_SHEET {
     script:
     """
     check_samplesheet.py \\
-        $samplesheet \\
-        samplesheet.csv \\
+        samplesheet.old.csv \\
+        samplesheet."${params.label}".csv \\
         $output/fastq
 
     cat <<-END_VERSIONS > versions.yml
