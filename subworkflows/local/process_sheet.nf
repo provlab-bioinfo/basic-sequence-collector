@@ -69,7 +69,7 @@ process CHECK_SHEET {
         val output //path: //path/to/output
 
     output:
-        path '*.csv', emit: samplesheet
+        path '*.csv'          , emit: samplesheet
         path '*.gz'           , emit: files
         path "versions.yml"   , emit: versions
 

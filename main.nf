@@ -18,8 +18,8 @@ workflow {
     
     versions = Channel.empty()
 
-    input =       toAbsPath(params.input)
-    output =      toAbsPath(params.output) + "/" + params.label
+    input = toAbsPath(params.input)
+    output = toAbsPath(params.output) + "/" + params.label
     
     inputPath = new File(input);
 
