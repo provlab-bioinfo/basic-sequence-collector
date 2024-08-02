@@ -45,10 +45,11 @@ process COPY_SHEET {
 workflow PROCESS_SHEET {
     take:
         samplesheet // file: /path/to/samplesheet.csv
-        output //path: //path/to/output
+        outdir //path: //path/to/output
 
     main:
-        CHECK_SHEET ( samplesheet , output )
+        CHECK_SHEET ( samplesheet , outdir )
+        
 
     emit:
         samplesheet = CHECK_SHEET.out.samplesheet// file: /path/to/samplesheet.csv
@@ -66,7 +67,7 @@ process CHECK_SHEET {
 
     input:
         path samplesheet // file: /path/to/samplesheet.csv
-        val output //path: //path/to/output
+        val outdir //path: //path/to/output
 
     output:
         path '*.csv'          , emit: samplesheet
@@ -81,7 +82,7 @@ process CHECK_SHEET {
     check_samplesheet.py \\
         samplesheet.old.csv \\
         samplesheet."${params.label}".csv \\
-        $output/fastq
+        $outdir/fastq
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

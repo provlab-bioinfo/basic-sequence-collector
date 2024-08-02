@@ -19,7 +19,7 @@ workflow {
     versions = Channel.empty()
 
     input = toAbsPath(params.input)
-    output = toAbsPath(params.output) + "/" + params.label
+    outdir = toAbsPath(params.outdir) + "/" + params.label
     
     inputPath = new File(input);
 
@@ -39,7 +39,9 @@ workflow {
     versions = versions.mix(SAVE_SHEET.out.versions)
     //SAVE_SHEET.out.samplesheet.view{ "SAVE_SHEET | sheet: ${it}" };
 
-    PROCESS_SHEET(SAVE_SHEET.out.samplesheet, output)
+    println outdir
+
+    PROCESS_SHEET(SAVE_SHEET.out.samplesheet, outdir)
     versions = versions.mix(PROCESS_SHEET.out.versions)
 
     //PROCESS_SHEET.out.samplesheet.view{ "PROCESS_SHEET | sheet: ${it}" };

@@ -10,9 +10,7 @@
             "type": "object",
             "fa_icon": "fas fa-terminal",
             "description": "Define where the pipeline should find input data and save output data.",
-            "required": [
-                "output"
-            ],
+            "required": ["outdir"],
             "properties": {
                 "input": {
                     "type": "string",
@@ -38,7 +36,7 @@
                     "help_text": "The folder needs to contain FASTQ files with a naming schema consistant with default Illumina or Nanopore format. See [usage docs](https://github.com/provlab-bioinfo/basic-sequence-stats#input).",
                     "fa_icon": "fas fa-folder-open"
                 },
-                "output": {
+                "outdir": {
                     "type": "string",
                     "format": "directory-path",
                     "description": "The output directory where the results will be saved. You have to use absolute paths to storage on Cloud infrastructure.",
@@ -237,7 +235,7 @@
                 "tracedir": {
                     "type": "string",
                     "description": "Directory to keep pipeline Nextflow logs and reports.",
-                    "default": "${params.output}/pipeline_info",
+                    "default": "${params.outdir}/pipeline_info",
                     "fa_icon": "fas fa-cogs",
                     "hidden": true
                 },
