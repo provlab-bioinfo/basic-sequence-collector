@@ -1,11 +1,12 @@
 workflow COLLECT {
     take:
         input // file: /path/to/samplesheet.csv
-        output
+        outdir
         label
+        prefix
 
     main:
-        COLLECT_FILES(input, output, label)
+        COLLECT_FILES(input, outdir, label, prefix)
 
     emit:
         samplesheet = COLLECT_FILES.out.samplesheet
@@ -23,7 +24,7 @@ process COLLECT_FILES {
         'biocontainers/python:3.9--1' }"
 
     input:
-        tuple path(input), path(output), val(label)
+        tuple path(input), path(outdir), val(label), val(prefix)
 
     output:
         path '*.csv'       , emit: samplesheet
@@ -36,7 +37,7 @@ process COLLECT_FILES {
         """
         nextflow run https://github.com/provlab-bioinfo/basic-sequence-collecter \
         --input ${input} \
-        --output ${output} \
+        --outdir ${outdir} \
         --label ${label} \
         -r main
 

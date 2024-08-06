@@ -21,8 +21,8 @@ workflow {
     input = toAbsPath(params.input)
     inputPath = new File(input);
     outdir = toAbsPath(params.outdir) + "/" + params.label
-    prefix = params.prefix ? params.prefix + "_" : ""    
-    
+    prefix = params.prefix ? params.prefix + "_" : ""     
+    suffix = params.suffix ? "_" + params.suffix : ""
 
     // SUBWORKFLOW: Read in folder and create the sample sheet
     if (inputPath.isDirectory()) {
@@ -42,7 +42,7 @@ workflow {
 
     println outdir
 
-    PROCESS_SHEET(SAVE_SHEET.out.samplesheet, outdir, prefix)
+    PROCESS_SHEET(SAVE_SHEET.out.samplesheet, outdir, prefix, suffix)
     versions = versions.mix(PROCESS_SHEET.out.versions)
 
     //PROCESS_SHEET.out.samplesheet.view{ "PROCESS_SHEET | sheet: ${it}" };

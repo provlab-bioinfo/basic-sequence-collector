@@ -54,6 +54,12 @@
                     "default": "",
                     "description": "The prefix to add to the FASTQ files."
                 },
+                "suffix": {
+                    "type": "string",
+                    "fa_icon": "fas fa-book",
+                    "default": "",
+                    "description": "The suffix to add to the FASTQ files."
+                },
                 "email": {
                     "type": "string",
                     "description": "Email address for completion summary.",

@@ -20,7 +20,7 @@ A collector for FASTQ files from Illumina (single- and paired-end short reads) o
 conda activate basic-sequence-collector
 nextflow run pipelines/basic-sequence-collector \
   --folder </path/to/inputdir> | --samplesheet </path/to/samplesheet> \
-  --output </path/to/output> \
+  --outdir </path/to/output> \
   --label <>
 ```
 
@@ -34,9 +34,13 @@ conda env create -f ./environments/environment.yml
 ## Arguments
 **`--input`**: Either a folder containing FASTQ files, or a sample sheet specifying FASTQ files/directories corresponding to a sample. See [Input](#input).
 <br>
-**`--output`**: The output directory. See [Output](#output).
+**`--outdir`**: The output directory. See [Output](#output).
 <br>
 **`--label`**: The label to output directory. See [Output](#output). Default is 'raw'.
+<br>
+**`--prefix`**: A prefix to attach to the FASTQ file. Default is ''.
+<br>
+**`--suffix`**: A suffix to attach to the FASTQ file. Default is ''.
 <br>
 
 ## Input:
@@ -68,17 +72,17 @@ SAMPLE-03   ,                           ,                           ,/path/to/SA
 
 ## Output
 
-The output file structure is determined by the `output`:
+The output file structure is determined by the `outdir`:
 
 ```
-<output>
+<outdir>
    ├── pipeline_info
    │      ├── samplesheet.csv
    │      └── software_versions.yml
    └── <label>
           ├── samplesheet.csv
           └── fastq
-                 └── [prefix_]<ID>.fastq[.gz]
+                 └── [prefix_]<ID>[_suffix]_{R1|R2|ONT}.fastq[.gz]
 ```
 
 ## Pipeline Usage
@@ -88,7 +92,7 @@ To use this module in a Nextflow pipeline, copy  `\modules\local\basic-sequence-
 ```groovy
 include { BASIC_SEQUENCE_COLLECTOR as COLLECT } from './modules/local/basic-sequence-collector.nf'
 
-COLLECT()
+COLLECT(params.input, params.outdir, "raw")
 
 samplesheet = COLLECT.out.samplesheet // a path() channel
 ```

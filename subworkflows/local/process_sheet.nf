@@ -47,9 +47,10 @@ workflow PROCESS_SHEET {
         samplesheet // file: /path/to/samplesheet.csv
         outdir //path: //path/to/output
         prefix //val: "" or "[prefix]_"
+        suffix  //val: "" or "_[suffix]""
 
     main:
-        CHECK_SHEET ( samplesheet, outdir, prefix)
+        CHECK_SHEET ( samplesheet, outdir, prefix, suffix )
         
 
     emit:
@@ -70,6 +71,7 @@ process CHECK_SHEET {
         path samplesheet // file: /path/to/samplesheet.csv
         val outdir //path: //path/to/output
         val prefix //val: "" or "[prefix]_"
+        val suffix
 
     output:
         path '*.csv'          , emit: samplesheet
@@ -82,10 +84,11 @@ process CHECK_SHEET {
     script:
     """
     check_samplesheet.py \\
-        samplesheet.old.csv \\
-        samplesheet."${params.label}".csv \\
-        $outdir/fastq \\
-        "$prefix"
+        --file_in samplesheet.old.csv \\
+        --file_out samplesheet.${params.label}.csv \\
+        --path_out $outdir/fastq \\
+        --prefix '$prefix' \\
+        --suffix '$suffix'
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
