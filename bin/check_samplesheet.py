@@ -13,6 +13,7 @@ def parse_args(args=None):
     parser.add_argument("FILE_IN", help="Input samplesheet file.")
     parser.add_argument("FILE_OUT", help="Output file.")
     parser.add_argument("PATH_OUT", help="Path to FASTQ output.")
+    parser.add_argument("PREFIX", help="Prefix for the outputted FASTQ files. Default is ''.", default = "")
     return parser.parse_args(args)
 
 def print_error(error, context="", context_str=""):
@@ -26,14 +27,13 @@ def isGZIP(filepath):
     with open(filepath, 'rb') as test_f:
         return test_f.read(2) == b'\x1f\x8b'
 
-def process_samples(ID, files, path_out, append = "NA"):
+def process_samples(ID, files, path_out, prefix = "", suffix = ""):
 
     files = files.split(";")
     files = [file for file in files if file.upper() != 'NA' and file != ""] # Remove any NA, empty files
     if len(files) == 0: return "NA"
 
-    append = "" if append == "NA" else append
-    outFile = open(ID + append + ".fastq.gz", 'wb')
+    outFile = open(prefix + ID + suffix + ".fastq.gz", 'wb')
 
     # Get files recursively from all folders
     allFiles = []   
@@ -101,7 +101,7 @@ def process_samples(ID, files, path_out, append = "NA"):
     return outPath
 
 # TODO nf-core: Update the check_samplesheet function
-def check_samplesheet(file_in, file_out, path_out):
+def check_samplesheet(file_in, file_out, path_out, prefix = ""):
     """
     This function checks that the samplesheet follows the following structure:
     sample,illumina1,illumina2,nanopore
@@ -154,9 +154,9 @@ def check_samplesheet(file_in, file_out, path_out):
             if not id:
                 print_error("Sample entry has not been specified!", "Line", line)
             
-            illumina1 = process_samples(id, illumina1, path_out, "_R1")
-            illumina2 = process_samples(id, illumina2, path_out, "_R2")
-            nanopore = process_samples(id, nanopore, path_out, "_ONT")
+            illumina1 = process_samples(id, illumina1, path_out, prefix, "_R1",)
+            illumina2 = process_samples(id, illumina2, path_out, prefix, "_R2")
+            nanopore =  process_samples(id, nanopore, path_out, prefix, "_ONT")
 
             print(f"   nanopore: {nanopore}")
                        
@@ -189,7 +189,7 @@ def check_samplesheet(file_in, file_out, path_out):
 
 def main(args=None):
     args = parse_args(args)
-    check_samplesheet(args.FILE_IN, args.FILE_OUT, args.PATH_OUT)
+    check_samplesheet(args.FILE_IN, args.FILE_OUT, args.PATH_OUT, args.PREFIX)
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -19,9 +19,10 @@ workflow {
     versions = Channel.empty()
 
     input = toAbsPath(params.input)
-    outdir = toAbsPath(params.outdir) + "/" + params.label
-    
     inputPath = new File(input);
+    outdir = toAbsPath(params.outdir) + "/" + params.label
+    prefix = params.prefix ? params.prefix + "_" : ""    
+    
 
     // SUBWORKFLOW: Read in folder and create the sample sheet
     if (inputPath.isDirectory()) {
@@ -41,7 +42,7 @@ workflow {
 
     println outdir
 
-    PROCESS_SHEET(SAVE_SHEET.out.samplesheet, outdir)
+    PROCESS_SHEET(SAVE_SHEET.out.samplesheet, outdir, prefix)
     versions = versions.mix(PROCESS_SHEET.out.versions)
 
     //PROCESS_SHEET.out.samplesheet.view{ "PROCESS_SHEET | sheet: ${it}" };
