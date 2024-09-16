@@ -92,7 +92,7 @@ To use this module in a Nextflow pipeline, copy  `\modules\local\basic-sequence-
 ```groovy
 include { BASIC_SEQUENCE_COLLECTOR as COLLECT } from './modules/local/basic-sequence-collector.nf'
 
-COLLECT(params.input, params.outdir, "raw")
+COLLECT(params.input, params.outdir, "raw"[, prefix, suffix])
 
 samplesheet = COLLECT.out.samplesheet // a path() channel
 ```

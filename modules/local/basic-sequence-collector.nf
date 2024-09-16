@@ -35,7 +35,7 @@ process COLLECT_FILES {
 
     script: // This script is bundled with the pipeline, in nf-core/rnaseq/bin/
         """
-        nextflow run https://github.com/provlab-bioinfo/basic-sequence-collecter \
+        nextflow run https://github.com/provlab-bioinfo/basic-sequence-collector \
         --input ${input} \
         --outdir ${outdir} \
         --label ${label} \
