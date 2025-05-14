@@ -18,8 +18,8 @@ A collector for FASTQ files from Illumina (single- and paired-end short reads) o
 
 ```bash
 conda activate basic-sequence-collector
-nextflow run pipelines/basic-sequence-collector \
-  --folder </path/to/inputdir> | --samplesheet </path/to/samplesheet> \
+nextflow run provlab-bioinfo/basic-sequence-collector \
+  --input </path/to/inputdir> | --samplesheet </path/to/samplesheet> \
   --outdir </path/to/output> \
   --label <>
 ```
