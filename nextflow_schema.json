@@ -60,6 +60,14 @@
                     "default": "",
                     "description": "The suffix to add to the FASTQ files."
                 },
+                "metadata": {
+                    "type": "string",
+                    "format": "path",
+                    "default": "",
+                    "description": "Path to metadata related to the experiment.",
+                    "help_text": "The file needs to contain the column 'barcode' that corresponds with the sample filenames. Any additional columns will be added as additional columns to the samplesheet.",
+                    "fa_icon": "fas fa-folder-open"
+                },
                 "email": {
                     "type": "string",
                     "description": "Email address for completion summary.",

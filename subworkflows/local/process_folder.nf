@@ -3,22 +3,70 @@ workflow PROCESS_FOLDER {
         folder // file: /path/to/samplesheet.csv
 
     main:
+        
+        println "Starting PROCESS_FOLDER"
+
         illumina_reads = nanopore_reads = Channel.empty()
 
         def illumina_files = { file -> file.name.lastIndexOf('_L001').with {it != -1 ? file.name[0..<it] : file.name} }
-        Channel.fromFilePairs( params.illumina_search_path, flat: true, illumina_files) | map{ checkReads(it, platform = "illumina") } | set{ illumina_reads }
+        Channel.fromFilePairs( params.illumina_search_path, flat: true, illumina_files) 
+               | filter { pair -> !pair[0].startsWith('Undetermined') }
+               | map { items ->
+                      def sample_id = items.head()
+                      def sample_barcode = (sample_id =~ /^(\d+)_/)[0][1]
+                      return [[id: sample_id, barcode: sample_barcode]] + items.tail() }
+               | set { illumina_reads }
+
+        // illumina_reads.view()
 
         def nanopore_files = { file -> file.name.lastIndexOf('_').with {it != -1 ? file.name[0..<it] : file.name} }
-        Channel.fromFilePairs( params.nanopore_search_path, flat: true , size: -1, nanopore_files) | map{ checkReads(it, platform = "nanopore") } | set{ nanopore_reads }
+        Channel.fromFilePairs( params.nanopore_search_path, flat: true , size: -1, nanopore_files) 
+               | filter { pair -> !pair[0].startsWith('unclassified') }
+               | map{ items ->
+                      def sample_id = items.head()
+                      def sample_barcode = (sample_id =~ /_barcode(\d+)_/)[0][1]
+                      return [[id: sample_id, barcode: sample_barcode]] + items.tail() }
+               | set{ nanopore_reads }
 
-        reads = illumina_reads.join(nanopore_reads, remainder: true).map{ create_folder_read_channels(it) }
+        // nanopore_reads.view()
 
-        BUILD_SHEET(reads).csv.collectFile(name: 'samplesheet.csv', keepHeader: true).map { it }.set { samplesheet }
+        illumina_reads.join(nanopore_reads, remainder: true)//.map{ create_folder_read_channels(it) }
+               | map { list -> list.collect { it ?: "" } }
+               | map {items ->
+                       def meta = items.head()
+                       def new_meta = [meta + [id: [params.prefix, meta.id, params.suffix].findAll().join('_')]]
+                     return new_meta + items.tail() }
+               | set { reads }
+
+        reads.map { meta, files -> meta.keySet() }
+            .flatten()
+            .unique()
+            .collect()
+            .set { headers }
+
+        // samplesheet = reads.combine(headers)       
+        //     .map { meta, files, headers ->
+        //         // Construct a row following the strict header order
+        //         def row = headers.collect { key -> meta[key] != null ? meta[key] : '' }.join(',')
+        //         return "${row}\n"
+        //     }
+        //     .collectFile(
+        //         name: 'samplesheet.csv',
+        //         newLine: false,
+        //         // Dynamically seed the file header row 
+        //         seed: { headers -> "${headers.join(',')}\n" } 
+        //     )
+
+        // samplesheet.view { file -> "Collected metadata CSV path: ${file.toAbsolutePath()}" }
+
+
+        //BUILD_SHEET(reads).csv.collectFile(name: 'samplesheet.csv', keepHeader: true).map { it }.set { samplesheet }
         
     emit:
         reads // channel: [ val(meta), [ illumina ], nanopore ]
-        samplesheet
-        versions = BUILD_SHEET.out.versions
+        headers
+        //samplesheet
+        //versions = BUILD_SHEET.out.versions
 
 }
 
@@ -41,7 +89,7 @@ process BUILD_SHEET {
     when:
         task.ext.when == null || task.ext.when
 
-    script: // This script is bundled with the pipeline, in nf-core/rnaseq/bin/
+    script:
         """
         touch ${id}_samplesheet.csv
         echo "id,illumina1,illumina2,nanopore" >> ${id}_samplesheet.csv
@@ -57,13 +105,17 @@ process BUILD_SHEET {
 // Function to get list of [ meta, illumina1, illumina2, nanopore ]
 def create_folder_read_channels(List row) {
 
-    id = row[0]
-    illumina1 = row[1]
-    illumina2 = row.size() == 3 ? "" : row[2]
-    nanopore = row.size() == 3 ? row[2] : row[3]
+    prefix = (params.prefix == "" ? "" : params.prefix+"_")
+    suffix = (params.suffix == "" ? "" : params.suffix+"_")
+
+    id = prefix + row[0] + suffix
+    meta = [id: id, barcode: barcode]
+    illumina1 = row[2]
+    illumina2 = row.size() == 4 ? "" : row[3]
+    nanopore = row.size() == 4 ? row[3] : row[4]
     
-    array = [ id, illumina1, illumina2, nanopore ]
-    array = array.stream().map(x -> (x == null)? "":x).collect()
+    array = [ meta, illumina1, illumina2, nanopore ]
+    array = array.stream().map(x -> (x == null)? "":x).collect() // Replace nulls with empty string
 
     return array
 }
@@ -96,4 +148,8 @@ def checkReads(List row, platform = null) {
     }
 
     return reads
+}
+
+def getIlluminaBarcode(List row) {
+
 }
