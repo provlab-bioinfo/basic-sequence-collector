@@ -13,8 +13,6 @@ def parse_args(args=None):
     parser.add_argument('--file_in', help="Input samplesheet file.", nargs='?', required=True)
     parser.add_argument("--file_out", help="Output file.", nargs='?', required=True)
     parser.add_argument("--path_out", help="Path to FASTQ output.", nargs='?', required=True)
-    parser.add_argument("--prefix", help="Prefix for the outputted FASTQ files. Default is ''.", nargs='?', const = "", default='')
-    parser.add_argument("--suffix", help="Suffix for the outputted FASTQ files. Default is ''.", nargs='?', const = "", default='')
     return parser.parse_args(args)
 
 def print_error(error, context="", context_str=""):
@@ -28,13 +26,13 @@ def isGZIP(filepath):
     with open(filepath, 'rb') as test_f:
         return test_f.read(2) == b'\x1f\x8b'
 
-def process_samples(ID, files, path_out, prefix = "", suffix = "", type = ""):
+def process_samples(ID, files, path_out, type = ""):
 
     files = files.split(";")
     files = [file for file in files if file.upper() != 'NA' and file != ""] # Remove any NA, empty files
     if len(files) == 0: return "NA"
 
-    outFile = open(prefix + ID + suffix + type +".fastq.gz", 'wb')
+    outFile = open(ID + type +".fastq.gz", 'wb')
 
     # Get files recursively from all folders
     allFiles = []   
@@ -94,15 +92,13 @@ def process_samples(ID, files, path_out, prefix = "", suffix = "", type = ""):
         with open (gzipFASTQ.name, 'rb') as src:
             shutil.copyfileobj(src, outFile)
 
-
-
     outPath = os.path.normpath(os.path.join(path_out, outFile.name))
     outFile.close()
 
     return outPath
 
 # TODO nf-core: Update the check_samplesheet function
-def check_samplesheet(file_in, file_out, path_out, prefix = "", suffix = ""):
+def check_samplesheet(file_in, file_out, path_out):
     """
     This function checks that the samplesheet follows the following structure:
     sample,illumina1,illumina2,nanopore
@@ -155,9 +151,9 @@ def check_samplesheet(file_in, file_out, path_out, prefix = "", suffix = ""):
             if not id:
                 print_error("Sample entry has not been specified!", "Line", line)
             
-            illumina1 = process_samples(id, illumina1, path_out, prefix, suffix, "_R1",)
-            illumina2 = process_samples(id, illumina2, path_out, prefix, suffix, "_R2")
-            nanopore =  process_samples(id, nanopore, path_out, prefix, suffix, "_ONT")
+            illumina1 = process_samples(id, illumina1, path_out, "_R1",)
+            illumina2 = process_samples(id, illumina2, path_out, "_R2")
+            nanopore =  process_samples(id, nanopore, path_out, "_ONT")
 
             print(f"   nanopore: {nanopore}")
                        
@@ -184,13 +180,13 @@ def check_samplesheet(file_in, file_out, path_out, prefix = "", suffix = ""):
                     print_error("Multiple runs of a sample must be of the same datatype!", "Sample: {}".format(sample))
 
                 for idx, val in enumerate(sample_mapping_dict[sample]):
-                    fout.write(",".join(["{}_T{}".format(sample, idx + 1)] + val) + "\n")
+                    fout.write(",".join([sample]+val) + "\n")
     else:
         print_error("No entries to process!", "Samplesheet: {}".format(file_in))
 
 def main(args=None):
     args = parse_args(args)
-    check_samplesheet(args.file_in, args.file_out, args.path_out, args.prefix, args.suffix)
+    check_samplesheet(args.file_in, args.file_out, args.path_out)
 
 if __name__ == "__main__":
     sys.exit(main())

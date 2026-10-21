@@ -87,8 +87,6 @@ process CHECK_SHEET {
         --file_in samplesheet.old.csv \\
         --file_out samplesheet.${params.label}.csv \\
         --path_out $outdir/fastq \\
-        --prefix '$prefix' \\
-        --suffix '$suffix'
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
