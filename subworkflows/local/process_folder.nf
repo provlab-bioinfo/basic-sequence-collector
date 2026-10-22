@@ -13,44 +13,70 @@ workflow PROCESS_FOLDER {
         illumina_search_path = makeFastqSearchPath( params.illumina_suffixes, params.fastq_exts )
         def illumina_files = { file -> file.name.lastIndexOf('_L001').with {it != -1 ? file.name[0..<it] : file.name} }
         Channel.fromFilePairs( illumina_search_path, flat: true, illumina_files) 
-               | filter { pair -> !pair[0].startsWith('Undetermined') }
-               | map { items ->
-                      def sample_id = items.head()
-                      def sample_barcode = (sample_id =~ /^(\d+)_/)[0][1]
-                      return [[id: sample_id, barcode: sample_barcode]] + items.tail() }
-               | set { illumina_reads }
+            | filter { pair -> !pair[0].startsWith('Undetermined') }
+            | map { items ->
+                    def sample_id = items.head()
+                    def sample_barcode = (sample_id =~ /^(\d+)_/)[0][1]
+                    return [[id: sample_id, barcode: sample_barcode]] + items.tail() }
+            | set { illumina_reads }
 
         // Get the Nanopore reads
         nanopore_search_path = makeFastqSearchPath( params.nanopore_suffixes, params.fastq_exts )  
         def nanopore_files = { file -> file.name.lastIndexOf('_').with {it != -1 ? file.name[0..<it] : file.name} }
         Channel.fromFilePairs( nanopore_search_path, flat: true , size: -1, nanopore_files) 
-               | filter { pair -> !pair[0].startsWith('unclassified') }
-               | map{ items ->
-                      def sample_id = items.head()
-                      def sample_barcode = (sample_id =~ /_barcode(\d+)_/)[0][1]
-                      return [[id: sample_id, barcode: sample_barcode]] + items.tail() }
-               | set{ nanopore_reads }
+            | filter { pair -> !pair[0].startsWith('unclassified') }
+            | map{ items ->
+                    def sample_id = items.head()
+                    def sample_barcode = (sample_id =~ /_barcode(\d+)_/)[0][1]
+                    return [[id: sample_id, barcode: sample_barcode]] + items.tail() }
+            | set{ nanopore_reads }
 
         // Combine the reads
         illumina_reads.join(nanopore_reads, remainder: true)//.map{ create_folder_read_channels(it) }
-               | map { list -> list.collect { it ?: "" } }
-               | map {items ->
-                       def meta = items.head()
-                       def new_meta = [meta + [id: [params.prefix, meta.id, params.suffix].findAll().join('_')]]
-                     return new_meta + items.tail() }
-               | set { reads }
-
+            | map { list -> list.collect { it ?: "" } }
+            | map {items ->
+                    def meta = items.head()
+                    def new_meta = [meta + [id: [params.prefix, meta.id, params.suffix].findAll().join('_')]]
+                    return new_meta + items.tail() }
+            | set { reads }
 
         // Load the pipeline worksheet metadata, if it exists
-        Channel.fromPath( '${params.input}/*PipelineWorksheet*' )
+        Channel.fromPath( "${params.input}/*PipelineWorksheet*" )
+        | branch { f ->
+            exists: f.exists()
+                return f
+            missing: true
+                return f }
+        | set { worksheet }
 
-        // Create the CSV
+        // Join the reads and metadata, if worksheet exists
+        GET_METADATA(worksheet.exists)
+            | splitCsv(header: true)
+            | map { row -> row as Map }
+            | map { meta_pw -> [ meta_pw.barcode, meta_pw ] }
+            | join( reads.map { meta_reads -> [ meta_reads[0].barcode ] + meta_reads } )
+            | map { tuple ->
+                def meta_pw = tuple[1]
+                def meta_reads = tuple[2]
+                def merged = (meta_reads + meta_pw).findAll { k, v -> k != 'barcode' }
+                def files  = tuple.drop(3)          // everything after meta_b
+                [ merged ] + files }
+            | set { merged }
+
+        // Default to reads if the pipeline worksheet does not exist
+        data = merged
+            .toList()             
+            .concat( reads.toList() )         // Appends the backup channel (also collected)
+            .first { !it.isEmpty() }               // Grabs the first list that isn't empty
+            .flatMap()
+        
+        //Create the CSV with metamap values as individual columns
         def csvQuote = { v ->
             def s = (v == null) ? '' : v.toString()
             s.find(/[",\n]/) ? '"' + s.replace('"', '""') + '"' : s
         }
 
-        reads.toList()
+        data.toList()
             | map { samples ->
                 // Union of all meta keys, in order of first appearance
                 def metaKeys = samples.collectMany { it[0].keySet() as List }.unique()
@@ -77,7 +103,7 @@ workflow PROCESS_FOLDER {
             | set { samplesheet }
 
     emit:
-        reads // channel: [ val(meta), [ illumina ], nanopore ]
+        data // channel: [ val(meta), [ illumina ], nanopore ]
         samplesheet
         // versions = BUILD_SHEET.out.versions
 
@@ -89,24 +115,28 @@ def makeFastqSearchPath(fastqSuffixes, fastq_exts) {
         .collect { suffix, ext -> "${params.input}/**/${suffix}${ext}" }
 }
 
-process BUILD_SHEET {
-    tag "$folder"
+process GET_METADATA {
+    tag "$ws_path"
     label 'process_medium'
+    debug true 
 
     input:
-        tuple val(id), val(illumina1), val(illumina2), val(nanopore)
+        path ws_path
 
     output:
         path '*.csv'       , emit: csv
-        path "versions.yml", emit: versions
 
     when:
         task.ext.when == null || task.ext.when
 
     script:
         """
+        #!/usr/bin/env python3
+
         import pipeline_worksheet_reader as pwr
-        r = pwr.PipelineWorksheet("./example/")
-        r.getMetaData()
+        
+        r = pwr.PipelineWorksheet("$ws_path").getSamples()
+        r.columns = r.columns.str.lower()
+        r.to_csv('metadata.csv', index=False)
         """
 }

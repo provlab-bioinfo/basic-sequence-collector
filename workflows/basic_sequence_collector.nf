@@ -30,9 +30,9 @@ workflow BASIC_SEQUENCE_COLLECTOR {
     }
 
     
-    //PROCESS_FOLDER.out.reads.view{ "Reads | reads: ${it}" };
+    //PROCESS_FOLDER.out.data.view{ "Data: ${it}" };
     //PROCESS_FOLDER.out.headers.view{ "Headers | headers: ${it}" }
-    PROCESS_FOLDER.out.samplesheet.view{ "Samplesheet | sheet: ${it}" };
+     PROCESS_FOLDER.out.samplesheet.view{ "Samplesheet | sheet: ${it}" };
 
     // //SUBWORKFLOW: Read in samplesheet, validate, and stage input files
     // SAVE_SHEET(samplesheet)
