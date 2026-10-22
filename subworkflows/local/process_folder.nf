@@ -17,22 +17,22 @@ workflow PROCESS_FOLDER {
             | map { items ->
                     def sample_id = items.head()
                     def sample_barcode = (sample_id =~ /^(\d+)_/)[0][1]
-                    return [[id: sample_id, barcode: sample_barcode]] + items.tail() }
+                    return [[id: sample_id, barcode: sample_barcode]] + items.tail() + [""]}
             | set { illumina_reads }
 
         // Get the Nanopore reads
         nanopore_search_path = makeFastqSearchPath( params.nanopore_suffixes, params.fastq_exts )  
         def nanopore_files = { file -> file.name.lastIndexOf('_').with {it != -1 ? file.name[0..<it] : file.name} }
-        Channel.fromFilePairs( nanopore_search_path, flat: true , size: -1, nanopore_files) 
+        Channel.fromFilePairs( nanopore_search_path, size: -1, nanopore_files) 
             | filter { pair -> !pair[0].startsWith('unclassified') }
-            | map{ items ->
+            | map { items ->
                     def sample_id = items.head()
                     def sample_barcode = (sample_id =~ /_barcode(\d+)_/)[0][1]
-                    return [[id: sample_id, barcode: sample_barcode]] + items.tail() }
-            | set{ nanopore_reads }
+                    return [[id: sample_id, barcode: sample_barcode], "",""] + items.tail() }
+            | set { nanopore_reads }
 
         // Combine the reads
-        illumina_reads.join(nanopore_reads, remainder: true)//.map{ create_folder_read_channels(it) }
+        illumina_reads.concat(nanopore_reads)//.map{ create_folder_read_channels(it) }
             | map { list -> list.collect { it ?: "" } }
             | map {items ->
                     def meta = items.head()
