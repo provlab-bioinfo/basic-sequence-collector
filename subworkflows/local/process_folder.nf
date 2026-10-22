@@ -6,10 +6,13 @@ workflow PROCESS_FOLDER {
         
         println "Starting PROCESS_FOLDER"
 
-        illumina_reads = nanopore_reads = Channel.empty()
+        illumina_reads = Channel.empty()
+        nanopore_reads = Channel.empty()
 
+        // Get the Illumina reads
+        illumina_search_path = makeFastqSearchPath( params.illumina_suffixes, params.fastq_exts )
         def illumina_files = { file -> file.name.lastIndexOf('_L001').with {it != -1 ? file.name[0..<it] : file.name} }
-        Channel.fromFilePairs( params.illumina_search_path, flat: true, illumina_files) 
+        Channel.fromFilePairs( illumina_search_path, flat: true, illumina_files) 
                | filter { pair -> !pair[0].startsWith('Undetermined') }
                | map { items ->
                       def sample_id = items.head()
@@ -17,10 +20,10 @@ workflow PROCESS_FOLDER {
                       return [[id: sample_id, barcode: sample_barcode]] + items.tail() }
                | set { illumina_reads }
 
-        // illumina_reads.view()
-
+        // Get the Nanopore reads
+        nanopore_search_path = makeFastqSearchPath( params.nanopore_suffixes, params.fastq_exts )  
         def nanopore_files = { file -> file.name.lastIndexOf('_').with {it != -1 ? file.name[0..<it] : file.name} }
-        Channel.fromFilePairs( params.nanopore_search_path, flat: true , size: -1, nanopore_files) 
+        Channel.fromFilePairs( nanopore_search_path, flat: true , size: -1, nanopore_files) 
                | filter { pair -> !pair[0].startsWith('unclassified') }
                | map{ items ->
                       def sample_id = items.head()
@@ -28,8 +31,7 @@ workflow PROCESS_FOLDER {
                       return [[id: sample_id, barcode: sample_barcode]] + items.tail() }
                | set{ nanopore_reads }
 
-        // nanopore_reads.view()
-
+        // Combine the reads
         illumina_reads.join(nanopore_reads, remainder: true)//.map{ create_folder_read_channels(it) }
                | map { list -> list.collect { it ?: "" } }
                | map {items ->
@@ -38,46 +40,58 @@ workflow PROCESS_FOLDER {
                      return new_meta + items.tail() }
                | set { reads }
 
-        reads.map { meta, files -> meta.keySet() }
-            .flatten()
-            .unique()
-            .collect()
-            .set { headers }
 
-        // samplesheet = reads.combine(headers)       
-        //     .map { meta, files, headers ->
-        //         // Construct a row following the strict header order
-        //         def row = headers.collect { key -> meta[key] != null ? meta[key] : '' }.join(',')
-        //         return "${row}\n"
-        //     }
-        //     .collectFile(
-        //         name: 'samplesheet.csv',
-        //         newLine: false,
-        //         // Dynamically seed the file header row 
-        //         seed: { headers -> "${headers.join(',')}\n" } 
-        //     )
+        // Load the pipeline worksheet metadata, if it exists
+        Channel.fromPath( '${params.input}/*PipelineWorksheet*' )
 
-        // samplesheet.view { file -> "Collected metadata CSV path: ${file.toAbsolutePath()}" }
+        // Create the CSV
+        def csvQuote = { v ->
+            def s = (v == null) ? '' : v.toString()
+            s.find(/[",\n]/) ? '"' + s.replace('"', '""') + '"' : s
+        }
 
+        reads.toList()
+            | map { samples ->
+                // Union of all meta keys, in order of first appearance
+                def metaKeys = samples.collectMany { it[0].keySet() as List }.unique()
 
-        //BUILD_SHEET(reads).csv.collectFile(name: 'samplesheet.csv', keepHeader: true).map { it }.set { samplesheet }
-        
+                // Widest file count across rows
+                def fileCols = ['short1', 'short2', 'long']
+                def nFiles = samples.collect { it.size() - 1 }.max()
+                
+                def header = (metaKeys + fileCols).collect(csvQuote).join(',')
+
+                def rows = samples.collect { sample ->
+                    def meta  = sample[0]
+                    def files = sample.size() > 1 ? sample[1..-1] : []
+
+                    def metaVals = metaKeys.collect { k -> meta.containsKey(k) ? meta[k] : '' }
+                    def fileVals = (0..<nFiles).collect { i -> i < files.size() ? files[i] : '' }
+
+                    (metaVals + fileVals).collect(csvQuote).join(',')
+                }
+
+                ([header] + rows).join('\n') + '\n' }
+            | collectFile(name: 'samplesheet.csv', storeDir: params.outdir)
+            | map { it }
+            | set { samplesheet }
+
     emit:
         reads // channel: [ val(meta), [ illumina ], nanopore ]
-        headers
-        //samplesheet
-        //versions = BUILD_SHEET.out.versions
+        samplesheet
+        // versions = BUILD_SHEET.out.versions
 
+}
+
+def makeFastqSearchPath(fastqSuffixes, fastq_exts) {
+    [fastqSuffixes, fastq_exts]
+        .combinations()
+        .collect { suffix, ext -> "${params.input}/**/${suffix}${ext}" }
 }
 
 process BUILD_SHEET {
     tag "$folder"
     label 'process_medium'
-
-    conda "conda-forge::python=3.9.5"
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/python:3.9--1' :
-        'biocontainers/python:3.9--1' }"
 
     input:
         tuple val(id), val(illumina1), val(illumina2), val(nanopore)
@@ -91,65 +105,8 @@ process BUILD_SHEET {
 
     script:
         """
-        touch ${id}_samplesheet.csv
-        echo "id,illumina1,illumina2,nanopore" >> ${id}_samplesheet.csv
-        echo "${id},${illumina1},${illumina2},${nanopore}" >> ${id}_samplesheet.csv
-
-        cat <<-END_VERSIONS > versions.yml
-        "${task.process}":
-            python: \$(python --version | sed 's/Python //g')
-        END_VERSIONS
+        import pipeline_worksheet_reader as pwr
+        r = pwr.PipelineWorksheet("./example/")
+        r.getMetaData()
         """
-}
-
-// Function to get list of [ meta, illumina1, illumina2, nanopore ]
-def create_folder_read_channels(List row) {
-
-    prefix = (params.prefix == "" ? "" : params.prefix+"_")
-    suffix = (params.suffix == "" ? "" : params.suffix+"_")
-
-    id = prefix + row[0] + suffix
-    meta = [id: id, barcode: barcode]
-    illumina1 = row[2]
-    illumina2 = row.size() == 4 ? "" : row[3]
-    nanopore = row.size() == 4 ? row[3] : row[4]
-    
-    array = [ meta, illumina1, illumina2, nanopore ]
-    array = array.stream().map(x -> (x == null)? "":x).collect() // Replace nulls with empty string
-
-    return array
-}
-
-def checkReads(List row, platform = null) {
-    def meta = [:]
-    id = row[0]
-    reads = row[1..row.size()-1]
-    files = []
-
-    if (reads.size()) {       
-        for (read in reads) {
-            if (read == 'NA' | read == '') return 'NA'
-            if (!file(read).exists())    exit 1, "ERROR: Please check input samplesheet -> FASTQ file does not exist!\n   ${read}"        
-            if (file(read).size() == 0)  exit 1, "ERROR: Please check input samplesheet -> FASTQ file is empty!\n   ${read}"
-            files << file(read)
-        }
-    } else {
-        files = [""]
-    }
-
-    if (platform.equalsIgnoreCase('illumina')) {
-        if (files.size() == 2) {
-            reads = [id, files[0], files[1] ]
-        } else {
-            reads = [id, files.join(";") , "" ]
-        }
-    } else {
-        reads = [id, files.join(";") ]
-    }
-
-    return reads
-}
-
-def getIlluminaBarcode(List row) {
-
 }
