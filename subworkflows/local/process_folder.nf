@@ -37,12 +37,13 @@ workflow PROCESS_FOLDER {
             | map { list -> list.collect { it ?: "" } }
             | map {items ->
                     def meta = items.head()
-                    def new_meta = [meta + [id: [params.prefix, meta.id, params.suffix].findAll().join('_')]]
+                    def name = "idx" + meta.barcode
+                    def new_meta = [meta + [id: [params.prefix, name, params.suffix].findAll().join('_')]]
                     return new_meta + items.tail() }
             | set { reads }
 
         // Load the pipeline worksheet metadata, if it exists
-        Channel.fromPath( "${params.input}/*PipelineWorksheet*" )
+        Channel.fromPath( "${folder}/*PipelineWorksheet*" )
             | branch { f ->
                 exists: f.exists()
                     return f
@@ -60,19 +61,24 @@ workflow PROCESS_FOLDER {
             | map { tuple ->
                 def meta_pw = tuple[1]
                 def meta_reads = tuple[2]
-                def merged = (meta_reads + meta_pw).findAll { k, v -> k != 'barcode' }
-                def files  = tuple.drop(3)          // everything after meta_b
+                def merged = (meta_reads + meta_pw)
+                def files  = tuple.drop(3)
                 [ merged ] + files }
             | set { merged }
 
         // Default to reads if the pipeline worksheet does not exist
         merged
             | toList()             
-            | concat( reads.toList() )         // Appends the backup channel (also collected)
-            | first { !it.isEmpty() }               // Grabs the first list that isn't empty
+            | concat( reads.toList() )
+            | first { !it.isEmpty() }
             | flatMap()
+            | map { tuple ->
+                def meta = tuple[0]
+                def strip = meta.findAll { k, v -> k != 'barcode' }
+                def files  = tuple.drop(1)          
+                [ strip ] + files }
             | set { data }
-        
+
     emit:
         data // channel: [[id: id, ...],short1,short2,long]
         versions = GET_METADATA.out.versions // channel: [ versions.yml ]
@@ -83,12 +89,11 @@ def makeFastqSearchPath(dir, fastqSuffixes, fastq_exts) {
         .combinations()
         .collect { suffix, ext -> "${dir}/**/${suffix}${ext}" }
 }
-}
 
 process GET_METADATA {
     tag "$ws_path"
     label 'process_medium'
-    debug true 
+    // debug true 
 
     input:
         path ws_path
