@@ -32,7 +32,8 @@ workflow PROCESS_FOLDER {
             | set { nanopore_reads }
 
         // Combine the reads
-        illumina_reads.concat(nanopore_reads)//.map{ create_folder_read_channels(it) }
+        illumina_reads
+            | concat(nanopore_reads)//.map{ create_folder_read_channels(it) }
             | map { list -> list.collect { it ?: "" } }
             | map {items ->
                     def meta = items.head()
@@ -42,15 +43,16 @@ workflow PROCESS_FOLDER {
 
         // Load the pipeline worksheet metadata, if it exists
         Channel.fromPath( "${params.input}/*PipelineWorksheet*" )
-        | branch { f ->
-            exists: f.exists()
-                return f
-            missing: true
-                return f }
-        | set { worksheet }
+            | branch { f ->
+                exists: f.exists()
+                    return f
+                missing: true
+                    return f }
+            | set { worksheet }
 
         // Join the reads and metadata, if worksheet exists
         GET_METADATA(worksheet.exists)
+        GET_METADATA.out.csv
             | splitCsv(header: true)
             | map { row -> row as Map }
             | map { meta_pw -> [ meta_pw.barcode, meta_pw ] }
@@ -64,49 +66,15 @@ workflow PROCESS_FOLDER {
             | set { merged }
 
         // Default to reads if the pipeline worksheet does not exist
-        data = merged
-            .toList()             
-            .concat( reads.toList() )         // Appends the backup channel (also collected)
-            .first { !it.isEmpty() }               // Grabs the first list that isn't empty
-            .flatMap()
+        merged
+            | toList()             
+            | concat( reads.toList() )         // Appends the backup channel (also collected)
+            | first { !it.isEmpty() }               // Grabs the first list that isn't empty
+            | flatMap()
+            | set { data }
         
-        //Create the CSV with metamap values as individual columns
-        def csvQuote = { v ->
-            def s = (v == null) ? '' : v.toString()
-            s.find(/[",\n]/) ? '"' + s.replace('"', '""') + '"' : s
-        }
-
-        data.toList()
-            | map { samples ->
-                // Union of all meta keys, in order of first appearance
-                def metaKeys = samples.collectMany { it[0].keySet() as List }.unique()
-
-                // Widest file count across rows
-                def fileCols = ['short1', 'short2', 'long']
-                def nFiles = samples.collect { it.size() - 1 }.max()
-                
-                def header = (metaKeys + fileCols).collect(csvQuote).join(',')
-
-                def rows = samples.collect { sample ->
-                    def meta  = sample[0]
-                    def files = sample.size() > 1 ? sample[1..-1] : []
-
-                    def metaVals = metaKeys.collect { k -> meta.containsKey(k) ? meta[k] : '' }
-                    def fileVals = (0..<nFiles).collect { i -> i < files.size() ? files[i] : '' }
-
-                    (metaVals + fileVals).collect(csvQuote).join(',')
-                }
-
-                ([header] + rows).join('\n') + '\n' }
-            | collectFile(name: 'samplesheet.csv', storeDir: params.outdir)
-            | map { it }
-            | set { samplesheet }
-
     emit:
-        data // channel: [ val(meta), [ illumina ], nanopore ]
-        samplesheet
-        // versions = BUILD_SHEET.out.versions
-
+        data // channel: [[id: id, ...],short1,short2,long]
 }
 
 def makeFastqSearchPath(fastqSuffixes, fastq_exts) {
