@@ -4,6 +4,7 @@
 include { SAVE_SHEET }                  from '../subworkflows/local/process_sheet'
 include { PROCESS_SHEET }               from '../subworkflows/local/process_sheet'
 include { PROCESS_FOLDER }              from '../subworkflows/local/process_folder'
+include { EXPORT_SHEET }                from '../subworkflows/local/sheet_io'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 
 workflow BASIC_SEQUENCE_COLLECTOR {
@@ -15,24 +16,29 @@ workflow BASIC_SEQUENCE_COLLECTOR {
     input = toAbsPath(params.input)
     inputPath = new File(input);
     outdir = toAbsPath(params.outdir) + "/" + params.label
-    prefix = params.prefix ? params.prefix + "_" : ""     
-    suffix = params.suffix ? "_" + params.suffix : ""
 
     // SUBWORKFLOW: Read in folder and create the sample sheet
-    if (inputPath.isDirectory()) {
-        PROCESS_FOLDER(Channel.fromPath(input))
-        //samplesheet = PROCESS_FOLDER.out.samplesheet
-        //versions = versions.mix(PROCESS_FOLDER.out.versions)
-        //samplesheet.view{ "PROCESS_FOLDER | sheet: ${it}" };
-    } else if (inputPath.isFile()) {
-        //samplesheet = Channel.fromPath(input)
-        //samplesheet.view{ "INPUT_SHEET | sheet: ${it}" };
-    }
+    // if (inputPath.isDirectory()) {
+        PROCESS_FOLDER(input)
+    // } else {
+        
+    // }
 
+    //PROCESS_FOLDER.out.data.toList().view()
+    // PROCESS_FOLDER.out.data.view()
+    // PROCESS_FOLDER.out.data.toList().view()
+    // PROCESS_FOLDER.out.data.toList().first().view()
+
+
+    EXPORT_SHEET(PROCESS_FOLDER.out.data.toList())
+
+    EXPORT_SHEET.out.samplesheet.view()
     
     //PROCESS_FOLDER.out.data.view{ "Data: ${it}" };
+    versions = versions.mix(PROCESS_FOLDER.out.versions)
+    versions.view()
     //PROCESS_FOLDER.out.headers.view{ "Headers | headers: ${it}" }
-     PROCESS_FOLDER.out.samplesheet.view{ "Samplesheet | sheet: ${it}" };
+    // PROCESS_FOLDER.out.samplesheet.view{ "Samplesheet | sheet: ${it}" };
 
     // //SUBWORKFLOW: Read in samplesheet, validate, and stage input files
     // SAVE_SHEET(samplesheet)
@@ -43,14 +49,14 @@ workflow BASIC_SEQUENCE_COLLECTOR {
     // versions = versions.mix(PROCESS_SHEET.out.versions)
     // //PROCESS_SHEET.out.samplesheet.view{ "PROCESS_SHEET | sheet: ${it}" };
 
-    // // SUBWORKFLOW: Get versioning
-    // CUSTOM_DUMPSOFTWAREVERSIONS (versions.unique().collectFile(name: 'collated_versions.yml'))
+    // SUBWORKFLOW: Get versioning
+    CUSTOM_DUMPSOFTWAREVERSIONS (versions.unique().collectFile(name: 'collated_versions.yml'))
 
     // PROCESS_SHEET.out.samplesheet.view{ "PROCESS_SHEET: ${it}"}
 
     //emit:
         // samplesheet = PROCESS_SHEET.out.samplesheet //PROCESS_SHEET.out.reads
-   // versions
+      // versions
 }
 
 def toAbsPath(String path) {  

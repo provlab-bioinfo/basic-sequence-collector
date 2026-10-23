@@ -116,9 +116,11 @@ process GET_METADATA {
         r.to_csv('metadata.csv', index=False)
 
         from importlib.metadata import version
+        import platform
         process = "${task.process}"
         with open("versions.yml", "w", encoding="utf-8") as file:
             file.write(f"{process}:\\n")
-            file.write(f"\\tpipeline_worksheet_reader: {version('pipeline_worksheet_reader')}")
+            file.write(f"  python: {platform.python_version()}\\n")
+            file.write(f"  pipeline_worksheet_reader: {version('pipeline_worksheet_reader')}")
         """
 }
