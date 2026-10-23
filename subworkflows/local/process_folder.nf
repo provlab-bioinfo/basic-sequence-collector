@@ -10,25 +10,25 @@ workflow PROCESS_FOLDER {
         nanopore_reads = Channel.empty()
 
         // Get the Illumina reads
-        illumina_search_path = makeFastqSearchPath(folder, params.illumina_suffixes, params.fastq_exts )
+        illumina_search_path = makeFastqSearchPath("${folder}", params.illumina_suffixes, params.fastq_exts )
         def illumina_files = { file -> file.name.lastIndexOf('_L001').with {it != -1 ? file.name[0..<it] : file.name} }
         Channel.fromFilePairs( illumina_search_path, flat: true, illumina_files) 
             | filter { pair -> !pair[0].startsWith('Undetermined') }
             | map { items ->
                     def sample_id = items.head()
-                    def sample_barcode = (sample_id =~ /^(\d+)_/)[0][1]
-                    return [[id: sample_id, barcode: sample_barcode]] + items.tail() + [""]}
+                    def sample_barcode = (sample_id =~ /^(\d+)_/)[0][1].replaceFirst(/^0+/, '')
+                    return [[id: sample_id, barcode: sample_barcode]] + items.tail() + [[""]]}
             | set { illumina_reads }
 
         // Get the Nanopore reads
-        nanopore_search_path = makeFastqSearchPath(folder, params.nanopore_suffixes, params.fastq_exts )  
+        nanopore_search_path = makeFastqSearchPath("${folder}", params.nanopore_suffixes, params.fastq_exts )  
         def nanopore_files = { file -> file.name.lastIndexOf('_').with {it != -1 ? file.name[0..<it] : file.name} }
         Channel.fromFilePairs( nanopore_search_path, size: -1, nanopore_files) 
             | filter { pair -> !pair[0].startsWith('unclassified') }
             | map { items ->
                     def sample_id = items.head()
-                    def sample_barcode = (sample_id =~ /_barcode(\d+)_/)[0][1]
-                    return [[id: sample_id, barcode: sample_barcode], "",""] + items.tail() }
+                    def sample_barcode = (sample_id =~ /_barcode(\d+)_/)[0][1].replaceFirst(/^0+/, '')
+                    return [[id: sample_id, barcode: sample_barcode]] + ["",""] + items.tail() }
             | set { nanopore_reads }
 
         // Combine the reads
