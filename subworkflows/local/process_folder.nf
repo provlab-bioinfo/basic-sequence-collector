@@ -10,7 +10,7 @@ workflow PROCESS_FOLDER {
         nanopore_reads = Channel.empty()
 
         // Get the Illumina reads
-        illumina_search_path = makeFastqSearchPath( params.illumina_suffixes, params.fastq_exts )
+        illumina_search_path = makeFastqSearchPath(folder, params.illumina_suffixes, params.fastq_exts )
         def illumina_files = { file -> file.name.lastIndexOf('_L001').with {it != -1 ? file.name[0..<it] : file.name} }
         Channel.fromFilePairs( illumina_search_path, flat: true, illumina_files) 
             | filter { pair -> !pair[0].startsWith('Undetermined') }
@@ -21,7 +21,7 @@ workflow PROCESS_FOLDER {
             | set { illumina_reads }
 
         // Get the Nanopore reads
-        nanopore_search_path = makeFastqSearchPath( params.nanopore_suffixes, params.fastq_exts )  
+        nanopore_search_path = makeFastqSearchPath(folder, params.nanopore_suffixes, params.fastq_exts )  
         def nanopore_files = { file -> file.name.lastIndexOf('_').with {it != -1 ? file.name[0..<it] : file.name} }
         Channel.fromFilePairs( nanopore_search_path, size: -1, nanopore_files) 
             | filter { pair -> !pair[0].startsWith('unclassified') }
@@ -75,12 +75,14 @@ workflow PROCESS_FOLDER {
         
     emit:
         data // channel: [[id: id, ...],short1,short2,long]
+        versions = GET_METADATA.out.versions // channel: [ versions.yml ]
 }
 
-def makeFastqSearchPath(fastqSuffixes, fastq_exts) {
+def makeFastqSearchPath(dir, fastqSuffixes, fastq_exts) {
     [fastqSuffixes, fastq_exts]
         .combinations()
-        .collect { suffix, ext -> "${params.input}/**/${suffix}${ext}" }
+        .collect { suffix, ext -> "${dir}/**/${suffix}${ext}" }
+}
 }
 
 process GET_METADATA {
@@ -92,7 +94,8 @@ process GET_METADATA {
         path ws_path
 
     output:
-        path '*.csv'       , emit: csv
+        path 'metadata.csv'     , emit: csv
+        path 'versions.yml' , emit: versions
 
     when:
         task.ext.when == null || task.ext.when
@@ -106,5 +109,11 @@ process GET_METADATA {
         r = pwr.PipelineWorksheet("$ws_path").getSamples()
         r.columns = r.columns.str.lower()
         r.to_csv('metadata.csv', index=False)
+
+        from importlib.metadata import version
+        process = "${task.process}"
+        with open("versions.yml", "w", encoding="utf-8") as file:
+            file.write(f"{process}:\\n")
+            file.write(f"\\tpipeline_worksheet_reader: {version('pipeline_worksheet_reader')}")
         """
 }
