@@ -5,49 +5,23 @@ include { SAVE_SHEET }                  from '../subworkflows/local/process_shee
 include { PROCESS_SHEET }               from '../subworkflows/local/process_sheet'
 include { PROCESS_FOLDER }              from '../subworkflows/local/process_folder'
 include { EXPORT_SHEET }                from '../subworkflows/local/sheet_io'
+include { CONCAT_READS }                from '../subworkflows/local/sheet_io'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
+//include { softwareVersionsToYAML } from 'plugin/nf-core-utils'
 
 workflow BASIC_SEQUENCE_COLLECTOR {
     
     //WorkflowMain.initialise(workflow, params, log)
+    input = new File(params.input.toString()).getCanonicalPath()
+    //versions = Channel.empty() //Channel.of([ "Workflow", [ "Pipeline": workflow.manifest.version ] ])
 
-    versions = Channel.empty()
-
-    input = toAbsPath(params.input)
-    inputPath = new File(input);
-    outdir = toAbsPath(params.outdir) + "/" + params.label
-
-    // SUBWORKFLOW: Read in folder and create the sample sheet
-    // if (inputPath.isDirectory()) {
-        PROCESS_FOLDER(input)
-    // } else {
-        
-    // }
-
-    //PROCESS_FOLDER.out.data.toList().view()
-    // PROCESS_FOLDER.out.data.view()
-    // PROCESS_FOLDER.out.data.toList().view()
-    // PROCESS_FOLDER.out.data.toList().first().view()
-
-
-    EXPORT_SHEET(PROCESS_FOLDER.out.data.toList())
-
-    EXPORT_SHEET.out.samplesheet.view()
+    PROCESS_FOLDER(input)
+    //versions = versions.mix(PROCESS_FOLDER.out.versions)
     
-    //PROCESS_FOLDER.out.data.view{ "Data: ${it}" };
-    versions = versions.mix(PROCESS_FOLDER.out.versions)
-    versions.view()
-    //PROCESS_FOLDER.out.headers.view{ "Headers | headers: ${it}" }
-    // PROCESS_FOLDER.out.samplesheet.view{ "Samplesheet | sheet: ${it}" };
-
-    // //SUBWORKFLOW: Read in samplesheet, validate, and stage input files
-    // SAVE_SHEET(samplesheet)
-    // versions = versions.mix(SAVE_SHEET.out.versions)
-    // //SAVE_SHEET.out.samplesheet.view{ "SAVE_SHEET | sheet: ${it}" };
-
-    // PROCESS_SHEET(SAVE_SHEET.out.samplesheet, outdir, prefix, suffix)
-    // versions = versions.mix(PROCESS_SHEET.out.versions)
-    // //PROCESS_SHEET.out.samplesheet.view{ "PROCESS_SHEET | sheet: ${it}" };
+    CONCAT_READS(PROCESS_FOLDER.out.data)
+    //versions = versions.mix(CONCAT_READS.out.versions) //TODO: figure out why it outputs versions with quotation marks
+    
+    EXPORT_SHEET(CONCAT_READS.out.data.toList())
 
     // SUBWORKFLOW: Get versioning
     CUSTOM_DUMPSOFTWAREVERSIONS (versions.unique().collectFile(name: 'collated_versions.yml'))
