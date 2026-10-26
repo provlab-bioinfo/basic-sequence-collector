@@ -1,6 +1,3 @@
-
-
-
 include { SAVE_SHEET }                  from '../subworkflows/local/process_sheet'
 include { PROCESS_SHEET }               from '../subworkflows/local/process_sheet'
 include { PROCESS_FOLDER }              from '../subworkflows/local/process_folder'
@@ -22,17 +19,23 @@ workflow BASIC_SEQUENCE_COLLECTOR {
     //versions = versions.mix(CONCAT_READS.out.versions) //TODO: figure out why it outputs versions with quotation marks
     
     EXPORT_SHEET(CONCAT_READS.out.data.toList())
+   // versions = versions.mix(EXPORT_SHEET.out.versions)
 
     // SUBWORKFLOW: Get versioning
-    CUSTOM_DUMPSOFTWAREVERSIONS (versions.unique().collectFile(name: 'collated_versions.yml'))
+    //CUSTOM_DUMPSOFTWAREVERSIONS (
+        //Channel.topic('versions').unique().view()//unique().collectFile(name: 'collated_versions.yml')
+    //)
 
-    // PROCESS_SHEET.out.samplesheet.view{ "PROCESS_SHEET: ${it}"}
+    versions = Channel.topic('versions').unique{ it.text }.collectFile(name: 'collated_versions.yml')
+    versions.view()
 
-    //emit:
-        // samplesheet = PROCESS_SHEET.out.samplesheet //PROCESS_SHEET.out.reads
-      // versions
+    CUSTOM_DUMPSOFTWAREVERSIONS (versions)
+    // emit:
+
+    //     samplesheet = EXPORT_SHEET.out.samplesheet //PROCESS_SHEET.out.reads
+
 }
 
-def toAbsPath(String path) {  
-    return path ? new File(path.toString()).getCanonicalPath() : path  
-}
+// def toAbsPath(String path) {  
+//     return path ? new File(path.toString()).getCanonicalPath() : path  
+// }

@@ -17,7 +17,7 @@ workflow PROCESS_FOLDER {
             | map { items ->
                     def sample_id = items.head()
                     def sample_barcode = (sample_id =~ /^(\d+)_/)[0][1].replaceFirst(/^0+/, '')
-                    return [[id: sample_id, barcode: sample_barcode]] + items.tail() + [[""]]}
+                    return [[id: sample_id, barcode: sample_barcode]] + items.tail() + [null]}
             | set { illumina_reads }
 
         // Get the Nanopore reads
@@ -28,7 +28,7 @@ workflow PROCESS_FOLDER {
             | map { items ->
                     def sample_id = items.head()
                     def sample_barcode = (sample_id =~ /_barcode(\d+)_/)[0][1].replaceFirst(/^0+/, '')
-                    return [[id: sample_id, barcode: sample_barcode]] + ["",""] + items.tail() }
+                    return [[id: sample_id, barcode: sample_barcode]] + [null,null] + items.tail() }
             | set { nanopore_reads }
 
         // Combine the reads
@@ -38,7 +38,7 @@ workflow PROCESS_FOLDER {
             | map {items ->
                     def meta = items.head()
                     def name = "idx" + meta.barcode
-                    def new_meta = [meta + [id: [params.prefix, name, params.suffix].findAll().join('_')]]
+                    def new_meta = [meta + [id: [params.prefix, name, params.suffix].findAll().join('_')]] // Add the prefix/suffix
                     return new_meta + items.tail() }
             | set { reads }
 
@@ -57,7 +57,7 @@ workflow PROCESS_FOLDER {
             | splitCsv(header: true)
             | map { row -> row as Map }
             | map { meta_pw -> [ meta_pw.barcode, meta_pw ] }
-            | join( reads.map { meta_reads -> [ meta_reads[0].barcode ] + meta_reads } )
+            | join( reads.map { meta_reads -> [ meta_reads[0].barcode ] + meta_reads } ) //  Merge on the barcode
             | map { tuple ->
                 def meta_pw = tuple[1]
                 def meta_reads = tuple[2]
@@ -74,14 +74,14 @@ workflow PROCESS_FOLDER {
             | flatMap()
             | map { tuple ->
                 def meta = tuple[0]
-                def strip = meta.findAll { k, v -> k != 'barcode' }
+                def strip = meta.findAll { k, v -> k != 'barcode' } // Remove the barcode column
                 def files  = tuple.drop(1)          
                 [ strip ] + files }
             | set { data }
 
     emit:
         data // channel: [[id: id, ...],short1,short2,long]
-        versions = GET_METADATA.out.versions // channel: [ versions.yml ]
+        //versions = GET_METADATA.out.versions // channel: [ versions.yml ]
 }
 
 def makeFastqSearchPath(dir, fastqSuffixes, fastq_exts) {
@@ -99,8 +99,8 @@ process GET_METADATA {
         path ws_path
 
     output:
-        path 'metadata.csv'     , emit: csv
-        path 'versions.yml' , emit: versions
+        path 'metadata.csv',    emit: csv
+        path 'versions.yml',    topic: versions
 
     when:
         task.ext.when == null || task.ext.when
@@ -120,7 +120,10 @@ process GET_METADATA {
         process = "${task.process}"
         with open("versions.yml", "w", encoding="utf-8") as file:
             file.write(f"{process}:\\n")
-            file.write(f"  python: {platform.python_version()}\\n")
-            file.write(f"  pipeline_worksheet_reader: {version('pipeline_worksheet_reader')}")
+            file.write(f"    python: {platform.python_version()}\\n")
+            file.write(f"    pipeline_worksheet_reader: {version('pipeline_worksheet_reader')}\\n")
         """
 }
+
+
+//pip show pipeline_worksheet_reader | awk '/^Version: / {print $2}'
