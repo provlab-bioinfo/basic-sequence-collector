@@ -63,7 +63,7 @@ workflow CONCAT_READS {
 
 process CONCAT_FASTQ {
     tag "${meta.read_type}"
-    publishDir "${params.outdir}/${params.label}", mode: 'copy'
+    publishDir "${params.outdir}/${params.label}", mode: 'copy', pattern: "*.fastq.gz"
 
     input:
         tuple val(meta), path(reads)
