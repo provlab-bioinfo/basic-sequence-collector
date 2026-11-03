@@ -8,15 +8,14 @@ workflow BASIC_SEQUENCE_COLLECTOR {
     
     //WorkflowMain.initialise(workflow, params, log)
 
-    // input = new File(params.input.toString()).getCanonicalPath()
+    input = new File(params.input.toString()).getCanonicalPath()
 
-    // PROCESS_FOLDER(input)
-    // CONCAT_READS(PROCESS_FOLDER.out.data)
-    // EXPORT_SHEET(CONCAT_READS.out.data.toList())
-
-    // versions = Channel.topic('versions').unique{ it.text }.collectFile(name: 'collated_versions.yml')
-    // CUSTOM_DUMPSOFTWAREVERSIONS (versions)
+    PROCESS_FOLDER(input)
+    CONCAT_READS(PROCESS_FOLDER.out.reads)
+    EXPORT_SHEET(CONCAT_READS.out.reads.toList())
     
-    IMPORT_SHEET(params.sheet_ill)
-    IMPORT_SHEET(params.sheet_ont)
+    //IMPORT_SHEET(EXPORT_SHEET.out.samplesheet)
+
+    versions = Channel.topic('versions').unique{ it.text }.collectFile(name: 'collated_versions.yml')
+    CUSTOM_DUMPSOFTWAREVERSIONS (versions)
 }

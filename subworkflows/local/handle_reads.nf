@@ -1,6 +1,15 @@
+/**
+* Concatenates list of reads into a single file.
+*
+* Will concatenate lists for each of Illumina R1 & R2 and ONT into a single file using the cat command.
+* The read path will be to the published directory '${params.outdir}/${params.label}/'
+*
+* @take reads     tuple of metadata and reads to concatenate. Reads can be null, a single file, or list of files. E.g., [[id: id, ...],short1,short2,[long]].
+* @emit data      tuple of metadata and cat'd reads. Each read is a single file with the path to the published directory. E.g., [[id: id, ...],short1,short2,long].
+*/
 workflow CONCAT_READS {
     take:
-        reads    // format: [[id: id, ...],short1,short2,long]
+        reads
 
     main:
 
@@ -13,22 +22,32 @@ workflow CONCAT_READS {
         CONCAT_FASTQ(read_pairs)
 
         CONCAT_FASTQ.out.reads
-            | map { meta, fastq ->
+            | map { meta, fastq ->  // Extract read_type and get publish dir
                 def orig      = meta.findAll { k, v -> k != 'read_type' }
                 def published = file("${params.outdir}/${params.label}/${fastq.name}")
                 [ orig, meta.read_type, published ] }
             | groupTuple()
-            | map { meta, types, files ->
+            | map { meta, types, files ->   // Re-assemble tuple based on read_type
                 def byType = [types, files].transpose().collectEntries()
                 [ meta, byType.R1 ?: null, byType.R2 ?: null, byType.ONT ?: null ] }
-            | set {data}
+            | set {reads}
 
     emit:
-        data
+        reads
 }
 
+/**
+* Concatenates reads into a single file.
+*
+* Will concatenate reads into a single file using the cat command.
+* The read path will be to the work directory.
+*
+* @input reads      Tuple of metadata and reads to cat. Reads can be single files or list of files. Must contain at least one file. E.g., format: [[id: id, ...],short1,short2,long]
+* @output reads     Tuple of metadata and cat'd reads. Each read is a single file and has the path to the work directory.
+* @topic versions   Software versions used by the process.
+*/
 process CONCAT_FASTQ {
-    tag "${meta.id}.${meta.read_type}"
+    tag "${meta.id}_${meta.read_type}.fastq.gz"
     publishDir "${params.outdir}/${params.label}", mode: 'copy', pattern: "*.fastq.gz"
 
     input:
@@ -37,7 +56,6 @@ process CONCAT_FASTQ {
     output:
         tuple val(meta), path("*.fastq.gz"),    emit: reads
         path 'versions.yml',                    topic: versions
-        //tuple val("${task.process}"), val('cat'), eval('cat --version | sed -n "1s/.*) //p"'), topic: versions
 
     script: 
         reads = reads instanceof List ? reads : [reads]
