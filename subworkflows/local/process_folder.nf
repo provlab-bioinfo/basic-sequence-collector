@@ -1,6 +1,6 @@
 workflow PROCESS_FOLDER {
     take:
-        folder // file: /path/to/samplesheet.csv
+        folder // format: /path/to/samplesheet.csv
 
     main:
         
@@ -81,7 +81,6 @@ workflow PROCESS_FOLDER {
 
     emit:
         data // channel: [[id: id, ...],short1,short2,long]
-        //versions = GET_METADATA.out.versions // channel: [ versions.yml ]
 }
 
 def makeFastqSearchPath(dir, fastqSuffixes, fastq_exts) {
@@ -93,7 +92,6 @@ def makeFastqSearchPath(dir, fastqSuffixes, fastq_exts) {
 process GET_METADATA {
     tag "$ws_path"
     label 'process_medium'
-    // debug true 
 
     input:
         path ws_path
@@ -111,7 +109,7 @@ process GET_METADATA {
 
         import pipeline_worksheet_reader as pwr
         
-        r = pwr.PipelineWorksheet("$ws_path").getSamples()
+        r = pwr.PipelineWorksheet("$ws_path").getMetaData()
         r.columns = r.columns.str.lower()
         r.to_csv('metadata.csv', index=False)
 
@@ -124,6 +122,3 @@ process GET_METADATA {
             file.write(f"    pipeline_worksheet_reader: {version('pipeline_worksheet_reader')}\\n")
         """
 }
-
-
-//pip show pipeline_worksheet_reader | awk '/^Version: / {print $2}'
