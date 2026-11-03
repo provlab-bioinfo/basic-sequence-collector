@@ -3,7 +3,6 @@ workflow EXPORT_SHEET {
         data    // format: [[id: id, ...],short1,short2,long]
 
     main:       
-        //Create the CSV with metamap values as individual columns
         def csvQuote = { v ->
             def s = (v == null) ? '' : v.toString()
             s.find(/[",\n]/) ? '"' + s.replace('"', '""') + '"' : s
@@ -22,12 +21,32 @@ workflow EXPORT_SHEET {
                     def fileVals = (0..<nFiles).collect { i -> i < files.size() ? files[i] : '' }
                     (metaVals + fileVals).collect(csvQuote).join(',') }
                 ([header] + rows).join('\n') + '\n' }
-            | collectFile(name: 'samplesheet.csv', storeDir: "${params.outdir}/${params.label}")
+            | collectFile(name: "samplesheet.${params.label}.csv", storeDir: "${params.outdir}/${params.label}")
             | map { it }
             | set { samplesheet }
 
     emit:
-        data            // format: [[id: id, ...],short1,short2,long]
-        samplesheet     // format: /path/to/file
+        data        // format: [[id: id, ...],file1,file2,etc]
+        samplesheet // format: /path/to/file
 }
 
+workflow IMPORT_SHEET {
+    take:
+        sheet   // format: /path/to/file
+
+    main:
+        file_cols = params.input_cols.split(",") as List
+
+        Channel.fromPath(sheet)
+            | splitCsv(header: true, sep: ",")
+            | map { row ->
+                def meta = row.findAll { col, val -> !(col in file_cols) }
+                def files = file_cols.collect { key -> row[key] ? file(row[key]) : null }
+                return [ meta ] + files }
+            | set { data }
+
+        data.view()
+
+    emit: 
+        data // format: [[id: id, ...],file1,file2,etc]
+}

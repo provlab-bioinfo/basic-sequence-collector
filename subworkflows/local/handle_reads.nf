@@ -12,8 +12,6 @@ workflow CONCAT_READS {
 
         CONCAT_FASTQ(read_pairs)
 
-
-
         CONCAT_FASTQ.out.reads
             | map { meta, fastq ->
                 def orig      = meta.findAll { k, v -> k != 'read_type' }
@@ -22,7 +20,7 @@ workflow CONCAT_READS {
             | groupTuple()
             | map { meta, types, files ->
                 def byType = [types, files].transpose().collectEntries()
-                [ meta, byType.R1 ?: "", byType.R2 ?: "", byType.ONT ?: "" ] }
+                [ meta, byType.R1 ?: null, byType.R2 ?: null, byType.ONT ?: null ] }
             | set {data}
 
     emit:
@@ -30,7 +28,7 @@ workflow CONCAT_READS {
 }
 
 process CONCAT_FASTQ {
-    tag "${meta.read_type}"
+    tag "${meta.id}.${meta.read_type}"
     publishDir "${params.outdir}/${params.label}", mode: 'copy', pattern: "*.fastq.gz"
 
     input:

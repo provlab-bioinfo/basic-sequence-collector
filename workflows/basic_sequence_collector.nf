@@ -1,18 +1,22 @@
 include { PROCESS_FOLDER }              from '../subworkflows/local/process_folder'
 include { EXPORT_SHEET }                from '../subworkflows/local/sheet_io'
+include { IMPORT_SHEET }                from '../subworkflows/local/sheet_io'
 include { CONCAT_READS }                from '../subworkflows/local/handle_reads'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 
 workflow BASIC_SEQUENCE_COLLECTOR {
     
     //WorkflowMain.initialise(workflow, params, log)
-    input = new File(params.input.toString()).getCanonicalPath()
 
-    PROCESS_FOLDER(input)
-    CONCAT_READS(PROCESS_FOLDER.out.data)
-    EXPORT_SHEET(CONCAT_READS.out.data.toList())
+    // input = new File(params.input.toString()).getCanonicalPath()
 
-    //versions = Channel.topic('versions').unique{ it.text }.collectFile(name: 'collated_versions.yml')
-    //CUSTOM_DUMPSOFTWAREVERSIONS (versions)
+    // PROCESS_FOLDER(input)
+    // CONCAT_READS(PROCESS_FOLDER.out.data)
+    // EXPORT_SHEET(CONCAT_READS.out.data.toList())
+
+    // versions = Channel.topic('versions').unique{ it.text }.collectFile(name: 'collated_versions.yml')
+    // CUSTOM_DUMPSOFTWAREVERSIONS (versions)
     
+    IMPORT_SHEET(params.sheet_ill)
+    IMPORT_SHEET(params.sheet_ont)
 }
