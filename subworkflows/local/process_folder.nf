@@ -49,7 +49,7 @@ workflow PROCESS_FOLDER {
             | map { items ->
                     def meta = items.head()
                     def name = "idx" + meta.barcode
-                    def new_meta = [meta + [id: [params.prefix, name, params.suffix].findAll().join('_')]] // Add the prefix/suffix
+                    def new_meta = [meta + [id: [params.prefix, name].findAll().join('_')]] // Add the prefix/suffix
                     return new_meta + items.tail() }
             | set { all_reads }
 

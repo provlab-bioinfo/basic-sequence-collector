@@ -39,7 +39,7 @@ workflow CONCAT_READS {
 /**
 * Concatenates reads into a single file.
 *
-* Will concatenate reads into a single file using the cat command.
+* Will concatenate reads into a single file using the cat command, and gzip if necessary.
 * The read path will be to the work directory.
 *
 * @input reads      Tuple of metadata and reads to cat. Reads can be single files or list of files. Must contain at least one file. E.g., format: [[id: id, ...],short1,short2,long]
@@ -60,12 +60,21 @@ process CONCAT_FASTQ {
     script: 
         reads = reads instanceof List ? reads : [reads]
         reads = reads.sort().join(" ")
+        suffix = params.suffix ? ".${params.suffix}" : ""
+        output = "${meta.id}_${meta.read_type}" + suffix + ".fastq.gz"
         """
-        cat ${reads} > "${meta.id}_${meta.read_type}.fastq.gz"
-
+        for file in ${reads}; do
+            if [[ "\$file" == *.gz || "\$file" == *.gzip ]]; then
+                cat "\$file" >> "${output}"
+            else                
+                gzip -c "\$file" >> "${output}"
+            fi
+        done
+        
         cat <<-END_VERSIONS > versions.yml
         ${task.process}:
-            cat: \$(cat --version | sed -n '1s/.*) //p')
+            cat: \$(cat --version | sed -n '1s/.* //p')
+            gzip: \$(gzip --version | sed -n '1s/.* //p')
         END_VERSIONS
         """
 }
