@@ -1,7 +1,7 @@
 /**
 * Converts metadata and reads to a CSV file.
 *
-* Reads will be assigned column names based on {params.output_cols}, and is order-sensitive.
+* Reads will be assigned column names based on {params.outcols}, and is order-sensitive.
 * Metadata will be expanded to individual columns.
 * Missing values will be exported as an empty string.
 *
@@ -74,6 +74,10 @@ workflow IMPORT_SHEET {
 
         Channel.fromPath(samplesheet)
             | splitCsv(header: true, sep: ",")
+            | map { row ->
+                if (row.containsKey('id') == false) {
+                    throw new Exception("Imported samplesheet does not contain the column 'id'. Import is aborted.") }
+                return row }
             | map { row ->
                 def meta = row.findAll { col, val -> !(col in file_cols) }
                 def files = file_cols.collect { key -> row[key] ? file(row[key]) : null }
