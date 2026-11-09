@@ -108,7 +108,7 @@ workflow PROCESS_FOLDER {
 def makeFastqSearchPath(dir, fastqSuffixes, fastqExtensions) {
     [fastqSuffixes, fastqExtensions]
         .combinations()
-        .collect { suffix, ext -> "${dir}/**/${suffix}${ext}" }
+        .collect { suffix, ext -> "${dir}/${suffix}${ext}" }
 }
 
 /**
