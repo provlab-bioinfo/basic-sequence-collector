@@ -20,6 +20,10 @@ workflow PROCESS_FOLDER {
         illumina_reads = Channel.empty()
         nanopore_reads = Channel.empty()
 
+       // folder = new File(folder).getCanonicalPath()
+
+        if (!new File(folder).exists()) {error("ERROR ~ Cannot find input folder. No such file or directory: ${folder}")}
+
         // Get the Illumina reads
         illumina_search_path = makeFastqSearchPath("${folder}", params.illumina_suffixes, params.fastq_exts )
         def illumina_files = { file -> file.name.lastIndexOf('_L001').with {it != -1 ? file.name[0..<it] : file.name} }
@@ -51,7 +55,10 @@ workflow PROCESS_FOLDER {
                     def name = "idx" + meta.barcode
                     def new_meta = [meta + [id: [params.prefix, name].findAll().join('_')]] // Add the prefix/suffix
                     return new_meta + items.tail() }
+            | ifEmpty { error("ERROR ~ No FASTQ files found in the input folder: ${folder}") }
             | set { all_reads }
+
+        println("All read checked")
 
         // Load the pipeline worksheet metadata
         Channel.fromPath( params.ignore_metadata ? "${folder}/this/doesnt/exist" : "${folder}/*PipelineWorksheet*" )
@@ -108,7 +115,8 @@ workflow PROCESS_FOLDER {
 def makeFastqSearchPath(dir, fastqSuffixes, fastqExtensions) {
     [fastqSuffixes, fastqExtensions]
         .combinations()
-        .collect { suffix, ext -> "${dir}/*${suffix}${ext}" }
+        .collect { suffix, ext -> ["${dir}/${suffix}${ext}","${dir}/**/${suffix}${ext}"] }
+        .flatten()
 }
 
 /**
