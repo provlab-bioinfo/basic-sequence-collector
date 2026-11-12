@@ -54,7 +54,7 @@ workflow PROCESS_FOLDER {
             | set { all_reads }
 
         // Load the pipeline worksheet metadata
-        Channel.fromPath( "${folder}/*PipelineWorksheet*" )
+        Channel.fromPath( params.ignore_metadata ? "${folder}/this/doesnt/exist" : "${folder}/*PipelineWorksheet*" )
             | branch { f ->
                 exists: f.exists()
                     return f
@@ -108,7 +108,7 @@ workflow PROCESS_FOLDER {
 def makeFastqSearchPath(dir, fastqSuffixes, fastqExtensions) {
     [fastqSuffixes, fastqExtensions]
         .combinations()
-        .collect { suffix, ext -> "${dir}/${suffix}${ext}" }
+        .collect { suffix, ext -> "${dir}/*${suffix}${ext}" }
 }
 
 /**
