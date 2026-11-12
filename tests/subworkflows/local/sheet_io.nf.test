@@ -3,7 +3,7 @@ nextflow_workflow {
     name "Test IMPORT_SHEET"
     script "subworkflows/local/sheet_io.nf"       
 
-    test("IMPORT_SHEET loads Illumina and ONT samples") {       
+    test("IMPORT_SHEET correctly loads Illumina and ONT samples") {       
 
         workflow "IMPORT_SHEET"
 
@@ -40,12 +40,100 @@ nextflow_workflow {
                 assert reads.get(n-1)[0].accession == "${n}${n}-${n}${n}${n}-${n}${n}${n}${n}${n}" 
                 assert reads.get(n-1)[1].endsWith("${n}_S${n}_L001_R1_001.fastq.gz")
                 assert reads.get(n-1)[2].endsWith("${n}_S${n}_L001_R2_001.fastq.gz")
-                assert reads.get(n-1)[3].endsWith("FAV00000_pass_barcode0${n}_AAAAAAAA.fastq.gz")
+                assert reads.get(n-1)[3].endsWith("FAV00000_pass_barcode0${n}_AAAAAAAA_0.fastq.gz")
             }
         }
     }
 
-    test("EXPORT_SHEET exports Illumina samples") {
+    test("IMPORT_SHEET fails when samplesheet is missing") {       
+
+        workflow "IMPORT_SHEET"
+
+        when {
+            workflow {  
+                """              
+                input[0] = file("/not/a/real/path")
+                """
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert workflow.exitStatus == 1
+            assert workflow.stderr.join('; ').contains("Cannot find samplesheet")
+        }
+    }
+
+    test("IMPORT_SHEET fails when ID column is missing") {       
+
+        workflow "IMPORT_SHEET"
+
+        def samplesheetPath = ""
+
+        setup {
+            def samplesheet = file("${workDir}/samplesheet.csv")
+            samplesheet.text = """\
+            sample,short1,short2,long
+            s1,file1_s1.fastq.gz,file2_s1.fastq.gz,file3_s1.fastq.gz
+            s2,file1_s2.fastq.gz,file2_s2.fastq.gz,file3_s2.fastq.gz
+            s3,file1_s3.fastq.gz,file2_s3.fastq.gz,file3_s3.fastq.gz
+            """.stripIndent()
+
+            samplesheetPath = samplesheet.absolutePath
+        }
+
+        when {
+            workflow {  
+                """              
+                input[0] = file("${samplesheetPath}")
+                """
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert workflow.exitStatus == 1
+            assert workflow.stderr.join('; ').contains("Missing `id` column in samplesheet")
+        }
+    }
+
+    test("IMPORT_SHEET fails when incols are missing") {       
+
+        workflow "IMPORT_SHEET"
+
+        def samplesheetPath = ""
+
+        setup {
+            def samplesheet = file("${workDir}/samplesheet.csv")
+            samplesheet.text = """\
+            id,found1,found2,missing
+            s1,f1.fq.gz,f2.fq.gz,f3.fq.gz
+            """.stripIndent()
+
+            samplesheetPath = samplesheet.absolutePath
+        }
+
+        when {
+
+            params {
+                incols = "found1,found2,found3"
+            }
+
+            workflow {  
+                """              
+                input[0] = file("${samplesheetPath}")
+                """
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert workflow.exitStatus == 1
+            assert workflow.stderr.join('; ').contains("Missing --incols in samplesheet")
+        }
+    }
+
+    test("EXPORT_SHEET correctly exports Illumina samples") {
 
         workflow "EXPORT_SHEET"
 
@@ -96,6 +184,95 @@ nextflow_workflow {
                 assert vals[3] == "${baseDir}/tests/input/Illumina/${i}_S${i}_L001_R2_001.fastq.gz"
                 assert vals[4] == "${baseDir}/tests/input/Nanopore/barcode0${i}/FAV00000_pass_barcode0${i}_AAAAAAAA.fastq.gz"
             }
+        }
+    }
+
+    test("EXPORT_SHEET fails when too many output cols") {
+
+        workflow "EXPORT_SHEET"
+
+        when {
+            params {
+                outdir = "results"
+                label = "fastq"
+                outcols = "short1,short2,long,extra"
+            }
+            
+            workflow {
+                """   
+                input[0] = Channel.fromList([
+                            [ [ id:'idx1', accession:"11-111-11111" ], // meta map
+                                file("${baseDir}/tests/input/Illumina/1_S1_L001_R1_001.fastq.gz"), 
+                                file("${baseDir}/tests/input/Illumina/1_S1_L001_R2_001.fastq.gz"),
+                                file("${baseDir}/tests/input/Nanopore/barcode01/FAV00000_pass_barcode01_AAAAAAAA.fastq.gz") ]
+                        ]).toList()
+                """
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert workflow.exitStatus == 1
+            assert workflow.stderr.join('; ').contains("Incorrect --outcols columns")
+        }
+    }
+
+    test("EXPORT_SHEET fails when too few output cols") {
+
+        workflow "EXPORT_SHEET"
+
+        when {
+            params {
+                outdir = "results"
+                label = "fastq"
+                outcols = "short1,short2"
+            }
+            
+            workflow {
+                """   
+                input[0] = Channel.fromList([
+                            [ [ id:'idx1', accession:"11-111-11111" ], // meta map
+                                file("${baseDir}/tests/input/Illumina/1_S1_L001_R1_001.fastq.gz"), 
+                                file("${baseDir}/tests/input/Illumina/1_S1_L001_R2_001.fastq.gz"),
+                                file("${baseDir}/tests/input/Nanopore/barcode01/FAV00000_pass_barcode01_AAAAAAAA.fastq.gz") ]
+                        ]).toList()
+                """
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert workflow.exitStatus == 1
+            assert workflow.stderr.join('; ').contains("Incorrect --outcols columns")
+        }
+    }
+
+    test("EXPORT_SHEET fails when missing ID col") {
+
+        workflow "EXPORT_SHEET"
+
+        when {
+            params {
+                outdir = "results"
+                label = "fastq"
+            }
+            
+            workflow {
+                """   
+                input[0] = Channel.fromList([
+                            [ [ not_id:'idx1', accession:"11-111-11111" ], // meta map
+                                file("${baseDir}/tests/input/Illumina/1_S1_L001_R1_001.fastq.gz"), 
+                                file("${baseDir}/tests/input/Illumina/1_S1_L001_R2_001.fastq.gz"),
+                                file("${baseDir}/tests/input/Nanopore/barcode01/FAV00000_pass_barcode01_AAAAAAAA.fastq.gz") ]
+                        ]).toList()
+                """
+            }
+        }
+
+        then {
+            assert workflow.failed
+            assert workflow.exitStatus == 1
+            assert workflow.stderr.join('; ').contains("Missing `id` col in output metadata")
         }
     }
 }
