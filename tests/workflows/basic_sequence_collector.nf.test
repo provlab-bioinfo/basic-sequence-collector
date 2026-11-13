@@ -1,0 +1,199 @@
+nextflow_workflow {
+
+    name "Test Workflow BASIC_SEQUENCE_COLLECTOR"
+    script "workflows/basic_sequence_collector.nf"
+    workflow "BASIC_SEQUENCE_COLLECTOR"
+
+    test("BASIC_SEQUENCE_COLLECTOR correctly handles an Illumina folder without pipeline worksheet") {
+
+        when {
+            params {
+                ignore_metadata = true
+                input = "${baseDir}/tests/input/Illumina"
+                label = "fastq"
+                outdir = "$outputDir"
+            }
+        }
+
+        then {
+            assert workflow.success
+            def samplesheet = "$outputDir/${params.label}/samplesheet.${params.label}.csv"
+            assert path(samplesheet).exists()
+
+            def lines = path(samplesheet).toFile().readLines().findAll { !it.trim().isEmpty() }
+            def headers = lines[0].split(',').collect { it.trim() }
+            assert headers == ["id","short1","short2","long"]
+
+            lines.tail().eachWithIndex { row, n -> 
+                def vals = row.split(',', -1)
+                def i = n+1
+                assert vals[0] == "idx${i}"
+                assert vals[1] == "$outputDir/${params.label}/idx${i}_R1.fastq.gz"
+                assert vals[2] == "$outputDir/${params.label}/idx${i}_R2.fastq.gz"
+                assert vals[3] == ""
+            }
+        }
+    }
+
+    test("BASIC_SEQUENCE_COLLECTOR correctly handles an Illumina folder with a pipeline worksheet") {
+
+        when {
+            params {
+                ignore_metadata = false
+                input = "${baseDir}/tests/input/Illumina"
+                label = "fastq"
+                outdir = "$outputDir"
+            }
+        }
+
+        then {
+            assert workflow.success
+            def samplesheet = "$outputDir/${params.label}/samplesheet.${params.label}.csv"
+            assert path(samplesheet).exists()
+
+            def lines = path(samplesheet).toFile().readLines().findAll { !it.trim().isEmpty() }
+            def headers = lines[0].split(',').collect { it.trim() }
+            assert headers == ['id', 'control', 'accession', 'organism', 'short1', 'short2', 'long']
+
+            lines.tail().eachWithIndex { row, n -> 
+                def vals = row.split(',', -1)
+                def i = n+1
+                assert vals[0] == "idx${i}"
+                assert vals[2] == "${i}${i}-${i}${i}${i}-${i}${i}${i}${i}${i}"
+                assert vals[4] == "$outputDir/${params.label}/idx${i}_R1.fastq.gz"
+                assert vals[5] == "$outputDir/${params.label}/idx${i}_R2.fastq.gz"
+                assert vals[6] == ""
+            }
+        }
+    }
+
+    test("BASIC_SEQUENCE_COLLECTOR correctly handles prefixes for Illumina") {
+
+        when {
+            params {
+                ignore_metadata = false
+                input = "${baseDir}/tests/input/Illumina"
+                label = "fastq"
+                outdir = "$outputDir"
+                prefix = "run1"
+            }
+        }
+
+        then {
+            assert workflow.success
+            def samplesheet = "$outputDir/${params.label}/samplesheet.${params.label}.csv"
+            assert path(samplesheet).exists()
+
+            def lines = path(samplesheet).toFile().readLines().findAll { !it.trim().isEmpty() }
+            def headers = lines[0].split(',').collect { it.trim() }
+            assert headers == ['id', 'control', 'accession', 'organism', 'short1', 'short2', 'long']
+
+            lines.tail().eachWithIndex { row, n -> 
+                def vals = row.split(',', -1)
+                def i = n+1
+                assert vals[0] == "run1_idx${i}"
+                assert vals[2] == "${i}${i}-${i}${i}${i}-${i}${i}${i}${i}${i}"
+                assert vals[4] == "$outputDir/${params.label}/run1_idx${i}_R1.fastq.gz"
+                assert vals[5] == "$outputDir/${params.label}/run1_idx${i}_R2.fastq.gz"
+                assert vals[6] == ""
+            }
+        }
+    }
+
+    test("BASIC_SEQUENCE_COLLECTOR correctly handles an Nanopore folder without pipeline worksheet") {
+
+        when {
+            params {
+                ignore_metadata = true
+                input = "${baseDir}/tests/input/Nanopore"
+                label = "fastq"
+                outdir = "$outputDir"
+            }
+        }
+
+        then {
+            assert workflow.success
+            def samplesheet = "$outputDir/${params.label}/samplesheet.${params.label}.csv"
+            assert path(samplesheet).exists()
+
+            def lines = path(samplesheet).toFile().readLines().findAll { !it.trim().isEmpty() }
+            def headers = lines[0].split(',').collect { it.trim() }
+            assert headers == ["id","short1","short2","long"]
+
+            lines.tail().eachWithIndex { row, n -> 
+                def vals = row.split(',')
+                def i = n+1
+                assert vals[0] == "idx${i}"
+                //assert vals[1] == "${i}${i}-${i}${i}${i}-${i}${i}${i}${i}${i}"
+                assert vals[1] == ""
+                assert vals[2] == ""
+                assert vals[3] == "$outputDir/${params.label}/idx${i}_ONT.fastq.gz"
+            }
+        }
+    }
+
+    test("BASIC_SEQUENCE_COLLECTOR correctly handles an Nanopore folder with a pipeline worksheet") {
+
+        when {
+            params {
+                ignore_metadata = false
+                input = "${baseDir}/tests/input/Nanopore"
+                label = "fastq"
+                outdir = "$outputDir"
+            }
+        }
+
+        then {
+            assert workflow.success
+            def samplesheet = "$outputDir/${params.label}/samplesheet.${params.label}.csv"
+            assert path(samplesheet).exists()
+
+            def lines = path(samplesheet).toFile().readLines().findAll { !it.trim().isEmpty() }
+            def headers = lines[0].split(',').collect { it.trim() }
+            assert headers == ['id', 'control', 'accession', 'organism', 'short1', 'short2', 'long']
+
+            lines.tail().eachWithIndex { row, n -> 
+                def vals = row.split(',')
+                def i = n+1
+                assert vals[0] == "idx${i}"
+                assert vals[2] == "${i}${i}-${i}${i}${i}-${i}${i}${i}${i}${i}"
+                assert vals[4] == ""
+                assert vals[5] == ""
+                assert vals[6] == "$outputDir/${params.label}/idx${i}_ONT.fastq.gz"
+            }
+        }
+    }
+
+   test("BASIC_SEQUENCE_COLLECTOR correctly handles prefixes for Nanopore") {
+
+        when {
+            params {
+                ignore_metadata = true
+                input = "${baseDir}/tests/input/Nanopore"
+                label = "fastq"
+                outdir = "$outputDir"
+                prefix = "run1"
+            }
+        }
+
+        then {
+            assert workflow.success
+            def samplesheet = "$outputDir/${params.label}/samplesheet.${params.label}.csv"
+            assert path(samplesheet).exists()
+
+            def lines = path(samplesheet).toFile().readLines().findAll { !it.trim().isEmpty() }
+            def headers = lines[0].split(',').collect { it.trim() }
+            assert headers == ["id","short1","short2","long"]
+
+            lines.tail().eachWithIndex { row, n -> 
+                def vals = row.split(',')
+                def i = n+1
+                assert vals[0] == "run1_idx${i}"
+                //assert vals[1] == "${i}${i}-${i}${i}${i}-${i}${i}${i}${i}${i}"
+                assert vals[1] == ""
+                assert vals[2] == ""
+                assert vals[3] == "$outputDir/${params.label}/run1_idx${i}_ONT.fastq.gz"
+            }
+        }
+    }
+}

@@ -30,7 +30,9 @@ workflow CONCAT_READS {
             | map { meta, types, files ->   // Re-assemble tuple based on read_type
                 def byType = [types, files].transpose().collectEntries()
                 [ meta, byType.R1 ?: null, byType.R2 ?: null, byType.ONT ?: null ] }
-            | set {reads}
+            | toSortedList  { a, b -> a[0].id <=> b[0].id }
+            | flatMap
+            | set { reads }
 
     emit:
         reads

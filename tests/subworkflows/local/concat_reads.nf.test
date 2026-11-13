@@ -1,0 +1,91 @@
+nextflow_workflow {
+    name "Test workflow CONCAT_READS"
+    script "subworkflows/local/handle_reads.nf"
+    workflow "CONCAT_READS"
+
+    test("CONCAT_READS correctly loads Illumina data") {
+
+        setup {
+            run("PROCESS_FOLDER") {
+                script "subworkflows/local/process_folder.nf"
+
+                workflow {
+                    """
+                    input[0] = "${baseDir}/tests/input/Illumina"
+                    """
+                }
+            }
+        }
+
+        when {
+            params {
+                outdir = "results"
+                ignore_metadata = true
+            }
+            workflow {
+                """
+                input[0] = PROCESS_FOLDER.out.reads
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def reads = workflow.out.reads
+            assert reads.size() == 3 
+            
+            for (int n in 1..3) {
+                assert reads.get(n-1).size() == 4
+                assert reads.get(n-1)[0].keySet() == ["id"].toSet()
+                assert reads.get(n-1)[0].id == "idx${n}"
+                assert reads.get(n-1)[1].endsWith("idx${n}_R1.fastq.gz")
+                assert reads.get(n-1)[2].endsWith("idx${n}_R2.fastq.gz")
+                assert reads.get(n-1)[3] == null
+            }
+        }
+    }
+
+    test("CONCAT_READS correctly loads Nanopore data") {
+
+        setup {
+            run("PROCESS_FOLDER") {
+                script "subworkflows/local/process_folder.nf"
+
+                workflow {
+                    """
+                    input[0] = "${baseDir}/tests/input/Nanopore"
+                    """
+                }
+            }
+        }
+
+        when {
+            params {
+                outdir = "results"
+                ignore_metadata = true
+            }
+            workflow {
+                """
+                input[0] = PROCESS_FOLDER.out.reads
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+
+            def reads = workflow.out.reads
+            assert reads.size() == 3 
+            assert reads.get(0).size() == 4
+
+            for (int n in 1..3) {
+                assert reads.get(n-1)[0].keySet() == ["id"].toSet()
+                assert reads.get(n-1)[0].id == "idx${n}"
+                assert reads.get(n-1)[1] == null
+                assert reads.get(n-1)[2] == null
+                assert reads.get(n-1)[3].endsWith("idx${n}_ONT.fastq.gz")
+            }
+        }
+    }
+}

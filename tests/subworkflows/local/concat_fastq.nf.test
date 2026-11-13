@@ -1,0 +1,105 @@
+nextflow_process {
+    name "Test process CONCAT_FASTQ"
+    script "subworkflows/local/handle_reads.nf"
+    process "CONCAT_FASTQ"
+
+    test("CONCAT_FASTQ correctly concats multiple files") {
+
+        setup {
+            run("PROCESS_FOLDER") {
+                script "subworkflows/local/process_folder.nf"
+
+                workflow {
+                    """
+                    input[0] = "${baseDir}/tests/input/Nanopore"
+                    """
+                }
+            }
+        }
+
+        when {
+            params {
+                outdir = "results"
+                ignore_metadata = true
+            }
+
+            process {
+                """
+                input[0] = PROCESS_FOLDER.out.reads.map { meta, short1, short2, long1 -> tuple (meta + [read_type: 'ONT'], long1) }
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert process.success
+            def reads = process.out.reads
+
+            assert reads != null
+            assert reads.size() == 3            
+            
+            for (int n in 1..3) {
+                assert reads.get(n-1).size() == 2
+                assert reads.get(n-1)[0].id == "idx${n}"
+                assert reads.get(n-1)[1].endsWith("idx${n}_ONT.fastq.gz")
+                def catLines = path(reads.get(n-1)[1]).linesGzip.size()
+                def files = getAllFilesFromPath("${baseDir}/tests/input/Nanopore", include: ["**barcode0${n}*.fastq.gz" as String])
+                files = files.collect { file -> file.toString().startsWith('/') ? file.toString() : "${baseDir}/tests/input/Nanopore/${file}"}
+                def origLines = files.collect { file -> path(file).linesGzip.size() }
+                assert catLines == origLines.sum()                
+                // println "idx ${n} orig:" + origLines
+                // println "idx ${n} cat:" + catLines
+            }
+        }
+    }
+
+    test("CONCAT_FASTQ correctly passes through single files") {
+
+        setup {
+            run("PROCESS_FOLDER") {
+                script "subworkflows/local/process_folder.nf"
+
+                workflow {
+                    """
+                    input[0] = "${baseDir}/tests/input/Illumina"
+                    """
+                }
+            }
+        }
+
+        when {
+            params {
+                outdir = "results"
+                ignore_metadata = true
+            }
+
+            process {
+                """
+                input[0] = PROCESS_FOLDER.out.reads.map { meta, short1, short2, long1 -> tuple (meta + [read_type: 'R1'], short1) }
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert process.success
+
+            def reads = process.out.reads
+            assert reads != null
+            assert reads.size() == 3            
+            
+            for (int n in 1..3) {
+                assert reads.get(n-1).size() == 2
+                assert reads.get(n-1)[0].id == "idx${n}"
+                assert reads.get(n-1)[1].endsWith("idx${n}_R1.fastq.gz")
+                def catLines = path(reads.get(n-1)[1]).linesGzip.size()
+                def files = getAllFilesFromPath("${baseDir}/tests/input/Illumina", include: ["**${n}_S${n}*_R1*.fastq.gz" as String])
+                files = files.collect { file -> file.toString().startsWith('/') ? file.toString() : "${baseDir}/tests/input/Illumina/${file}"}
+                def origLines = files.collect { file -> path(file).linesGzip.size() }
+                assert catLines == origLines.sum()                
+                // println "idx ${n} orig:" + origLines
+                // println "idx ${n} cat:" + catLines
+            }
+        }
+    }
+}
