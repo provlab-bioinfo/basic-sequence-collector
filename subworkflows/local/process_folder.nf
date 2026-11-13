@@ -58,8 +58,6 @@ workflow PROCESS_FOLDER {
             | ifEmpty { error("ERROR ~ No FASTQ files found in the input folder: ${folder}") }
             | set { all_reads }
 
-        println("All read checked")
-
         // Load the pipeline worksheet metadata
         Channel.fromPath( params.ignore_metadata ? "${folder}/this/doesnt/exist" : "${folder}/*PipelineWorksheet*" )
             | branch { f ->
