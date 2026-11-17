@@ -1,0 +1,36 @@
+nextflow_process {
+
+    name "Test GET_METADATA"
+    script "subworkflows/local/process_folder.nf"
+    process "GET_METADATA"
+
+    test("GET_METADATA correctly loads pipeline worksheet") {
+
+        when {
+            process {
+                """
+                input[0] = file("${baseDir}/tests/input/Illumina/Illumina_PipelineWorksheet.xlsx")
+                """
+            }
+        }
+
+        then {
+            assert workflow.success
+            assert process.out.metadata != null
+            assert process.out.metadata.size() == 1 
+            def filename = process.out.metadata.get(0)
+            
+            def lines = path(filename).toFile().readLines().findAll { !it.trim().isEmpty() }
+            def headers = lines[0].split(',').collect { it.trim() }
+            assert headers == ["barcode","control","accession","organism"]
+            //assert process.out.metadata
+
+            lines.tail().eachWithIndex { row, n -> 
+                def vals = row.split(',')
+                def i = n+1
+                assert vals[0] == "${i}"
+                assert vals[2] == "${i}${i}-${i}${i}${i}-${i}${i}${i}${i}${i}"
+            }
+        }
+    }
+}

@@ -1,0 +1,4 @@
+id,accession,short1,short2,long
+idx1,11-111-11111,tests/input/Illumina/1_S1_L001_R1_001.fastq.gz,tests/input/Illumina/1_S1_L001_R2_001.fastq.gz,tests/input/Nanopore/barcode1/FAV00000_pass_barcode01_AAAAAAAA_0.fastq.gz
+idx2,22-222-22222,tests/input/Illumina/2_S2_L001_R1_001.fastq.gz,tests/input/Illumina/2_S2_L001_R2_001.fastq.gz,tests/input/Nanopore/barcode2/FAV00000_pass_barcode02_AAAAAAAA_0.fastq.gz
+idx3,33-333-33333,tests/input/Illumina/subdir/3_S3_L001_R1_001.fastq.gz,tests/input/Illumina/subdir/3_S3_L001_R2_001.fastq.gz,tests/input/Nanopore/barcode3/FAV00000_pass_barcode03_AAAAAAAA_0.fastq.gz

@@ -8,6 +8,8 @@
 * @take reads             Tuple of metadata and reads. E.g., [[id: id, ...],short1,short2,long].
 * @emit reads             Identical to the @param reads, in case they are needed for downstream processes.
 * @emit samplesheet       Path to the exported samplesheet.
+* @error                  If metadata does not contain key for `id`
+* @error                  If number of reads columns does not equal number of --outcols
 */
 workflow EXPORT_SHEET {
     take:
@@ -33,8 +35,10 @@ workflow EXPORT_SHEET {
         reads
             | map { samples ->                
                 def metaKeys = samples.collectMany { it[0].keySet() as List }.unique()
+                if (!metaKeys.contains('id')) { error("ERROR ~ Missing `id` col in output metadata: ${metaKeys}. Export is aborted.") }
                 def fileCols = params.outcols.split(",") as List
                 def nFiles = samples.collect { it.size() - 1 }.max()                
+                if (nFiles != fileCols.size()) { error("ERROR ~ Incorrect --outcols columns. Found ${nFiles} files to fill ${fileCols.size()} columns: ${fileCols}. Export is aborted.") }
                 def header = (metaKeys + fileCols).collect(csvQuote).join(',')
                 def rows = samples.collect { sample ->
                     def meta  = sample[0]
@@ -64,19 +68,30 @@ workflow EXPORT_SHEET {
 *
 * @take samplesheet       Path to the samplesheet CSV. Must contain the column 'id'. E.g., /path/to/samplesheet.csv
 * @emit reads             Tuple of metadata and reads. E.g., [[id: id, ...],short1,short2,long]
+* @error                  If samplesheet cannot be found
+* @error                  If `id` column is not present in samplesheet
+* @error                  If all --incols columns are not present in samplesheet
 */
 workflow IMPORT_SHEET {
     take:
         samplesheet
 
     main:
+
+        if (!samplesheet.exists()) {error("ERROR ~ Cannot find samplesheet. No such file or directory: ${samplesheet}")}
+
         file_cols = params.incols.split(",") as List
 
-        Channel.fromPath(samplesheet)
+        Channel.fromPath(samplesheet, checkIfExists: true)                  
             | splitCsv(header: true, sep: ",")
             | map { row ->
                 if (row.containsKey('id') == false) {
-                    throw new Exception("Imported samplesheet does not contain the column 'id'. Import is aborted.") }
+                    error("ERROR ~ Missing `id` column in samplesheet: ${row.keySet()}. Import is aborted: ${samplesheet}") }
+                return row }
+            | map { row ->
+                if (row.keySet().containsAll(file_cols) == false) {
+                    def missingCols = file_cols - row.keySet()
+                    error("ERROR ~ Missing --incols in samplesheet: ${missingCols}. Import is aborted: ${samplesheet}") }
                 return row }
             | map { row ->
                 def meta = row.findAll { col, val -> !(col in file_cols) }

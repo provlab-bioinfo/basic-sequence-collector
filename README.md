@@ -31,7 +31,7 @@ nextflow run provlab-bioinfo/basic-sequence-collector \
 
 [Conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) is required to build the [basic-sequence-collector](/environments/environment.yml) environment with the necessary workflow dependencies. To create the environment:
 
-```
+```bash
 conda env create -f ./environments/environment.yml
 ```
 
@@ -41,7 +41,7 @@ conda env create -f ./environments/environment.yml
 
 **`--outdir`**: The output directory. See [Output](#output) for structure.
 
-**`--outcols`**: The output columns, comma-delimited. Must contain 3 unique column names for paired Illumina reads and Naopore reads. Default is `short1,short2,long`.
+**`--outcols`**: The output columns, comma-delimited. Must contain 3 unique column names for paired Illumina reads and Nanopore reads. Default is `short1,short2,long`.
 
 **`--label`**: The name for the output subdirectory containing the reads. Default is `fastq`.
 
@@ -153,5 +153,6 @@ samplesheet = COLLECT.out.samplesheet // a path() channel
 ## References
 
 1. **Provlab-Bioinfo/ngs-pipeline-launcher:** A launcher tool for sorting sequencing runs and automatic initialization of their downstream pipelines. [https://github.com/provlab-bioinfo/ngs-pipeline-launcher](https://github.com/provlab-bioinfo/ngs-pipeline-launcher)
-2. **Illumina/FastQ Files:** Description of Illumina FASTQ naming conventions. [https://help.basespace.illumina.com/files-used-by-basespace/fastq-files](https://help.basespace.illumina.com/files-used-by-basespace/fastq-files)
-3. **Nanopore/Output Structure:** Description of ONT FASTQ naming conventions. [https://software-docs.nanoporetech.com/output-specifications/26.01/minknow/output_structure/](https://software-docs.nanoporetech.com/output-specifications/26.01/minknow/output_structure/)
+2. **Provlab-Bioinfo/pipeline-worksheet-reader:** A reader for NGS pipeline worksheets used in the Provlab-Bioinfo/ngs-pipeline-launcher. [https://github.com/provlab-bioinfo/pipeline-worksheet-reader](https://github.com/provlab-bioinfo/pipeline-worksheet-reader)
+3. **Illumina/FastQ Files:** Description of Illumina FASTQ naming conventions. [https://help.basespace.illumina.com/files-used-by-basespace/fastq-files](https://help.basespace.illumina.com/files-used-by-basespace/fastq-files)
+4. **Nanopore/Output Structure:** Description of ONT FASTQ naming conventions. [https://software-docs.nanoporetech.com/output-specifications/26.01/minknow/output_structure/](https://software-docs.nanoporetech.com/output-specifications/26.01/minknow/output_structure/)

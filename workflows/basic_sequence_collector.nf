@@ -8,9 +8,7 @@ workflow BASIC_SEQUENCE_COLLECTOR {
     
     //WorkflowMain.initialise(workflow, params, log)
 
-    input = new File(params.input.toString()).getCanonicalPath()
-
-    PROCESS_FOLDER(input)
+    PROCESS_FOLDER(params.input)
     CONCAT_READS(PROCESS_FOLDER.out.reads)
     EXPORT_SHEET(CONCAT_READS.out.reads.toList())
     
